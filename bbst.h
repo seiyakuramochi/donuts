@@ -282,31 +282,31 @@ void preOrder(struct TNode* root)
     }
 }
  
-// Returns count of
-int CountGreater(struct TNode* root, float x)
-{
-    int res = 0;
+// // Returns count of
+// int CountGreater(struct TNode* root, float x)
+// {
+//     int res = 0;
  
-    // Search for x. While searching, keep
-    // updating res if x is greater than
-    // current node.
-    while (root != NULL) {
+//     // Search for x. While searching, keep
+//     // updating res if x is greater than
+//     // current node.
+//     while (root != NULL) {
  
-        int desc = (root->right != NULL) ? 
-                   root->right->desc : -1;
+//         int desc = (root->right != NULL) ? 
+//                    root->right->desc : -1;
  
-        if (root->key > x) {
-            res = res + desc + 1 + 1;
-            root = root->left;
-        } else if (root->key < x)
-            root = root->right;
-        else {
-            res = res + desc + 1;
-            break;
-        }
-    }
-    return res;
-}
+//         if (root->key > x) {
+//             res = res + desc + 1 + 1;
+//             root = root->left;
+//         } else if (root->key < x)
+//             root = root->right;
+//         else {
+//             res = res + desc + 1;
+//             break;
+//         }
+//     }
+//     return res;
+// }
 
 // Returns count of
 int CountLesser(struct TNode* root, float x)
