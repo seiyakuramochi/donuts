@@ -125,7 +125,7 @@ int main(int argc, char* argv[]){
             // msec = std::chrono::duration_cast<std::chrono::milliseconds>(dur).count();
             // //std::cout << msec << "milli sec (routing) \n";
 
-            return 0;
+            //return 0;
         }
     }
 

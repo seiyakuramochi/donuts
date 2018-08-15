@@ -406,7 +406,7 @@ void Torus::calcRoutingProbabilities() {
                 p11 += 1.0;
         }
         p11 /= 2*n;
-        std::cout << "p11=" << p11 << std::endl;
+        //std::cout << "p11=" << p11 << std::endl;
         setProbability(a, 1, 1, p11);
     }
 
@@ -460,13 +460,13 @@ void Torus::calcRoutingProbabilities() {
                 }
                 p /= pow(2, h) * combination(n, h);
                 
-                std::cout << "setp=" << p << std::endl;
+                //std::cout << "setp=" << p << std::endl;
                 setProbability(a, h, d, p);
-                std::cout << "h,d=" << h << "," << d << std::endl;
+                //std::cout << "h,d=" << h << "," << d << std::endl;
 
-                std::cout << std::endl;
+                //std::cout << std::endl;
             }
-            std::cout << std::endl;
+            //std::cout << std::endl;
         }
 }   
 
