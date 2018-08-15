@@ -5,9 +5,9 @@
 #include <random>
 #include <stdlib.h>
 #include <chrono>
-
+ 
 #include "torus.h"
-
+ 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/io.hpp>
 

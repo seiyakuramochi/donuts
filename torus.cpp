@@ -6,6 +6,8 @@
 #include <random>
 #include <string.h>
 #include <stdlib.h>
+ 
+#include "bbst.h"
 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/io.hpp>
@@ -221,7 +223,7 @@ float Torus::calc_p_i(Node *a, Node *a_plus_e, int h, int d) {
 }
 
 
-void sort_couple(float *a, float *b, int len){
+void sortCouple(float *a, float *b, int len){
     // aの基準で、aとbをソートする
     using namespace std;
 
@@ -247,43 +249,52 @@ void sort_couple(float *a, float *b, int len){
     // コピーして終わり
     memcpy(a, tmp_a, sizeof(int)*len);
     memcpy(b, tmp_b, sizeof(int)*len);
+
+    free(tmp_a);
+    free(tmp_b);
 }
 
 
-void Torus::XpYp(Node *a, int h, int d,
-        int out_p[], int out_xp[], int out_yp[]) {
-
+std::string Torus::get_e_plus(Node *a, int i){
     using namespace std;
+    string e_plus = "";
+    for (int l = 0; l < n; l++)
+        if (l == i)
+            e_plus += to_string((a->value[l] + 1) % k) + ",";
+        else
+            e_plus += to_string(a->value[l]) + ",";
+    return e_plus;
+}
 
-    // TODO: モジュール分割したい
 
-    // pとqの領域を確保する
-    float *p = (float*)malloc(n*sizeof(float));
-    float *q = (float*)malloc(n*sizeof(float));
+std::string Torus::get_e_minus(Node *a, int i){
+    using namespace std;
+    string e_minus = "";
+     // 1つの次元について
+    for (int l = 0; l < n; l++)
+        if (l == i) {
+            if (a->value[l] == 0)
+                e_minus += to_string(k-1) + ",";
+            else
+                e_minus += to_string(a->value[l] - 1) + ",";
+        } else {
+            e_minus += to_string(a->value[l]) + ",";
+        }
+    return e_minus;
+}
+
+
+void Torus::XxYxPreProcess(Node *a, int h, int d, float *p, float *q){
     std::string e_plus, e_minus;
 
     // pとqを計算する
     // pはaのすべての近傍ノードについての情報を使った値になる
     // qもまた同様
 
-    // すべての次元について
     for (int i = 0; i < n; i++) {
-        e_plus = "";
-        e_minus = "";
-
-        // 1つの次元について
-        for (int l = 0; l < n; l++)
-            if (l == i) {
-                e_plus += to_string((a->value[l] + 1) % k) + ",";
-                if (a->value[l] == 0)
-                    e_minus += to_string(k-1) + ",";
-                else
-                    e_minus += to_string(a->value[l] - 1) + ",";
-            } else {
-                e_plus += to_string(a->value[l]) + ",";
-                e_minus += to_string(a->value[l]) + ",";
-            }
-
+        e_plus = get_e_plus(a, i);
+        e_minus = get_e_minus(a, i);
+ 
         assert(nodes[node_value_index[e_plus]].value[0] == e_plus[0]-48);
         assert(nodes[node_value_index[e_minus]].value[0] == e_minus[0]-48);
         
@@ -293,45 +304,100 @@ void Torus::XpYp(Node *a, int h, int d,
         p[i] = calc_p_i(a, &nodes[node_value_index[e_plus]], h, d);
         q[i] = calc_p_i(a, &nodes[node_value_index[e_minus]], h, d);
     }
+}
 
+
+void Torus::XxYxMainProcess(int h, int d, float* p, float* q,
+        float out_p[], int out_xp[], int out_yp[]){
+    using namespace std;
+
+    struct TNode* t_l = NULL;
+    struct TNode* t_r = NULL;
+ 
     for(int i=0; i<n; i++)
-        cout << p[i] << " ";
-    cout << endl;
-    for(int i=0; i<n; i++)
-        cout << q[i] << " ";
-    cout << endl;
+        t_r = insert(t_r, q[i]);
+
+    cout << CountLesser(t_r, 10.000) << "aaaa" << endl;
+    assert(CountLesser(t_r, 10.000) == n);
+    assert(CountLesser(t_r, -1.0) == 0);
+
+    for(int i=1; i<=n; i++){
+        out_xp[i-1] = CountLesser(t_l, p[i-1]);
+        t_r = deleteNode(t_r, q[i-1]);
+        out_yp[i-1] = (i-1-out_xp[i-1]) + CountLesser(t_r, p[i-1]);
+        t_l = insert(t_l, q[i-1]);
+    }
+
+    memcpy(out_p, p, n * sizeof(float));
+    free(p);
+    free(q);
+
+}
+
+
+void Torus::XpYp(Node *a, int h, int d,
+        float out_p[], int out_xp[], int out_yp[]) {
+    using namespace std;
+
+    // pとqの領域を確保する
+    float *p = (float*)malloc(n*sizeof(float));
+    float *q = (float*)malloc(n*sizeof(float));
+
+    // pとqの値を計算する
+    XxYxPreProcess(a, h, d, p, q);
 
     // ここでp[i]とq[i]は次元順序になっている
     // ので、pの大きさベースで確率の順序に並び替える(破壊的変更)
-    sort_couple(p, q, n);
+    sortCouple(p, q, n);
 
-    for(int i=0; i<n; i++)
-        cout << p[i] << " ";
-    cout << endl;
-    for(int i=0; i<n; i++)
-        cout << q[i] << " ";
-    cout << endl;
-    cout << "======"<<endl;
-
-    free(p);
-    free(q);
+    // xpとypを計算する
+    XxYxMainProcess(h, d, p, q, out_p, out_xp, out_yp);
 }
 
 
 void Torus::XqYq(Node *a, int h, int d,
-        int out_q[], int out_xq[], int out_yq[]) {
+        float out_q[], int out_xq[], int out_yq[]) {
+    using namespace std;
 
+    // pとqの領域を確保する
+    float *p = (float*)malloc(n*sizeof(float));
+    float *q = (float*)malloc(n*sizeof(float));
+
+    // pとqの値を計算する
+    XxYxPreProcess(a, h, d, p, q);
+
+    // ここでp[i]とq[i]は次元順序になっている
+    // ので、qの大きさベースで確率の順序に並び替える(破壊的変更)
+    sortCouple(q, p, n);
+
+    // xqとyqを計算する
+    XxYxMainProcess(h, d, q, p, out_q, out_xq, out_yq);
+}
+
+
+int combination(int n, int r){
+    using namespace std;
+    cout << "n,r,ncr="<< n << ","<<r<<","<<tgamma(n+1)/(tgamma(n-r+1)*tgamma(r+1))<<endl;
+
+    return tgamma(n+1)/(tgamma(n-r+1)*tgamma(r+1));
 }
 
 
 // procedure P(a)
 void Torus::calcRoutingProbabilities() {
-    // O(kn^2 k^n)
 
-    int *ps, *xp, *yp;
+    float *ps, *qs;
+    int *xp, *yp, *xq, *yq;
     Node *a;
     float p, p11;
     Node *neighbor;
+
+    ps = (float *)malloc(n*sizeof(float));
+    qs = (float *)malloc(n*sizeof(float));
+    xp = (int *)malloc(n*sizeof(int));
+    yp = (int *)malloc(n*sizeof(int));
+    xq = (int *)malloc(n*sizeof(int));
+    yq = (int *)malloc(n*sizeof(int));
 
     /*
      * まず全てのノードについてP(a)_{1,1}を計算
@@ -348,62 +414,57 @@ void Torus::calcRoutingProbabilities() {
                 p11 += 1.0;
         }
         p11 /= 2*n;
+        std::cout << "p11=" << p11 << std::endl;
         setProbability(a, 1, 1, p11);
     }
 
     /*
      * P(a)_{h,d}を計算していく
      * P(a)_{h,d}の計算には, P(a)_{h,d-1}やP(a)_{h-1,d-1}が必要になる.
-     * P(a)_{1,1}だけで計算できるP(a)_{1,2}から順番に計算していく
+     * P(a)_{1,1}だけで計算できるP(a)_{1,2}から順番に計算していく(動的計画法)
      *
      * Calculation of P(a)_{h,d}
      * P(a)_{h,d} needs P(a)_{h,d-1} and P(a)_{h-1,d-1}.
      * Calculation starts with P(a)_{1,2}.
      */
-//#pragma omp parallel
-    {
-        for (int d = 2; d <= diameter; d++)
-            for (int h = 1; h <= std::min(n, d); h++) {
+    for (int d = 2; d <= diameter; d++)
+        for (int h = 1; h <= std::min(n, d); h++) {
 
-                // for all nodes
-                for (int i = 0; i < V; i++) {
-                    a = &(nodes[i]);
+            // for all nodes
+            for (int i = 0; i < V; i++) {
+                a = &(nodes[i]);
+                
+                XpYp(a, h, d, ps, xp, yp);
+                XqYq(a, h, d, qs, xq, yq);
 
-                    XpYp(a, h, d, ps, xp, yp);
-                    //XqYq(a, );
+                p = 0.0;
+                for(int ii=1; ii<=n; ii++){
+                    for(int kk=0; kk<=h-1; kk++){
+                        // xp yp xq yq は 0-origin なので ii から 1 引く
+                        p += pow(2, kk) * ( 
+                             combination(xp[ii-1], kk) * 
+                             combination(yp[ii-1], h-kk-1) *
+                             ps[ii-1] +
+                             combination(xq[ii-1], kk) *
+                             combination(yq[ii-1], h-kk-1) *
+                             qs[ii-1]);
 
-                    p = 0.0;
-                    if (h == 1) {
-                        for (int j = 0; j < 2 * n; j++) {
-                            neighbor = &(nodes[a->neighbors[j]]);
-                            if (not hasFaultyLink(a, neighbor))
-                                p += getProbability(neighbor, h, d - 1);
-                        }
-                        p /= 2 * n;
-
-                    } else if (h == d) {
-                        for (int j = 0; j < 2 * n; j++) {
-                            neighbor = &(nodes[a->neighbors[j]]);
-                            if (not hasFaultyLink(a, neighbor))
-                                p += getProbability(neighbor, h - 1, d - 1);
-                        }
-                        p /= 2 * n;
-
-                    } else {
-                        for (int j = 0; j < 2 * n; j++) {
-                            neighbor = &(nodes[a->neighbors[j]]);
-                            if (not hasFaultyLink(a, neighbor))
-                                p += (h - 1) * getProbability(neighbor, h - 1, d - 1) +
-                                     (d - h) * getProbability(neighbor, h, d - 1);
-                        }
-                        p /= (2 * n * (d - 1));
+                        std::cout << "ps[i]=" << ps[ii-1] << std::endl;
+                        std::cout << "c*c=" << combination(xp[ii-1], kk) * 
+                             combination(yp[ii-1], h-kk-1)<< std::endl;
+                        std::cout << "p*c*c=" <<combination(xp[ii-1], kk) * 
+                             combination(yp[ii-1], h-kk-1) *
+                             ps[ii-1]<< std::endl;
                     }
-
-                    setProbability(a, h, d, p);
                 }
+                p /= pow(2, h) * combination(n, h);
+                
+                std::cout << "setp=" << p << std::endl;
+                setProbability(a, h, d, p);
+                std::cout << "h,d=" << h << "," << d << std::endl;
             }
-    }
-}
+        }
+}   
 
 
 // 1-α(a, b)
