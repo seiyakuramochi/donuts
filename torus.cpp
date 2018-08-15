@@ -247,8 +247,8 @@ void sortCouple(float *a, float *b, int len){
     }
 
     // コピーして終わり
-    memcpy(a, tmp_a, sizeof(int)*len);
-    memcpy(b, tmp_b, sizeof(int)*len);
+    memcpy(a, tmp_a, sizeof(float)*len);
+    memcpy(b, tmp_b, sizeof(float)*len);
 
     free(tmp_a);
     free(tmp_b);
@@ -270,7 +270,6 @@ std::string Torus::get_e_plus(Node *a, int i){
 std::string Torus::get_e_minus(Node *a, int i){
     using namespace std;
     string e_minus = "";
-     // 1つの次元について
     for (int l = 0; l < n; l++)
         if (l == i) {
             if (a->value[l] == 0)
@@ -288,9 +287,6 @@ void Torus::XxYxPreProcess(Node *a, int h, int d, float *p, float *q){
     std::string e_plus, e_minus;
 
     // pとqを計算する
-    // pはaのすべての近傍ノードについての情報を使った値になる
-    // qもまた同様
-
     for (int i = 0; i < n; i++) {
         e_plus = get_e_plus(a, i);
         e_minus = get_e_minus(a, i);
@@ -317,8 +313,7 @@ void Torus::XxYxMainProcess(int h, int d, float* p, float* q,
     for(int i=0; i<n; i++)
         t_r = insert(t_r, q[i]);
 
-    cout << CountLesser(t_r, 10.000) << "aaaa" << endl;
-    assert(CountLesser(t_r, 10.000) == n);
+    assert(CountLesser(t_r, 1000.0) == n);
     assert(CountLesser(t_r, -1.0) == 0);
 
     for(int i=1; i<=n; i++){
@@ -331,13 +326,11 @@ void Torus::XxYxMainProcess(int h, int d, float* p, float* q,
     memcpy(out_p, p, n * sizeof(float));
     free(p);
     free(q);
-
 }
 
 
 void Torus::XpYp(Node *a, int h, int d,
         float out_p[], int out_xp[], int out_yp[]) {
-    using namespace std;
 
     // pとqの領域を確保する
     float *p = (float*)malloc(n*sizeof(float));
@@ -357,7 +350,6 @@ void Torus::XpYp(Node *a, int h, int d,
 
 void Torus::XqYq(Node *a, int h, int d,
         float out_q[], int out_xq[], int out_yq[]) {
-    using namespace std;
 
     // pとqの領域を確保する
     float *p = (float*)malloc(n*sizeof(float));
@@ -376,16 +368,16 @@ void Torus::XqYq(Node *a, int h, int d,
 
 
 int combination(int n, int r){
-    using namespace std;
-    cout << "n,r,ncr="<< n << ","<<r<<","<<tgamma(n+1)/(tgamma(n-r+1)*tgamma(r+1))<<endl;
-
+    //using namespace std;
+    //cout << "n,r,ncr="<< n << ","<<r<<","<<tgamma(n+1)/(tgamma(n-r+1)*tgamma(r+1))<<endl;
+    if(r > n)
+        return 0;
     return tgamma(n+1)/(tgamma(n-r+1)*tgamma(r+1));
 }
 
 
 // procedure P(a)
 void Torus::calcRoutingProbabilities() {
-
     float *ps, *qs;
     int *xp, *yp, *xq, *yq;
     Node *a;
@@ -449,12 +441,21 @@ void Torus::calcRoutingProbabilities() {
                              combination(yq[ii-1], h-kk-1) *
                              qs[ii-1]);
 
-                        std::cout << "ps[i]=" << ps[ii-1] << std::endl;
-                        std::cout << "c*c=" << combination(xp[ii-1], kk) * 
-                             combination(yp[ii-1], h-kk-1)<< std::endl;
-                        std::cout << "p*c*c=" <<combination(xp[ii-1], kk) * 
-                             combination(yp[ii-1], h-kk-1) *
-                             ps[ii-1]<< std::endl;
+                        // std::cout << "ps[i]=" << ps[ii-1] << std::endl;
+                        // std::cout << "qs[i]=" << qs[ii-1] << std::endl;
+                        // std::cout << "xp[i]=" << xp[ii-1] << std::endl;
+                        // std::cout << "k=" << kk << std::endl;
+
+                        // std::cout << "yp[i]=" << yp[ii-1] << std::endl;
+                        // std::cout << "h-k1=" << h-kk-1 << std::endl;
+                        // std::cout << "xq[i]=" << xq[ii-1] << std::endl;
+                        // std::cout << "yq[i]=" << yq[ii-1] << std::endl;
+                        
+                        // std::cout << "c*c=" << combination(xp[ii-1], kk) * 
+                        //      combination(yp[ii-1], h-kk-1)<< std::endl;
+                        // std::cout << "p*c*c=" <<combination(xp[ii-1], kk) * 
+                        //      combination(yp[ii-1], h-kk-1) *
+                        //      ps[ii-1]<< std::endl;
                     }
                 }
                 p /= pow(2, h) * combination(n, h);
@@ -462,7 +463,10 @@ void Torus::calcRoutingProbabilities() {
                 std::cout << "setp=" << p << std::endl;
                 setProbability(a, h, d, p);
                 std::cout << "h,d=" << h << "," << d << std::endl;
+
+                std::cout << std::endl;
             }
+            std::cout << std::endl;
         }
 }   
 
