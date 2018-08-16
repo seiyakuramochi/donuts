@@ -7,7 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
  
-#include "bbst.h"
+#include "bbst.hpp"
 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/io.hpp>
@@ -307,7 +307,7 @@ void Torus::XxYxMainProcess(int h, int d, float* p, float* q,
         float out_p[], int out_xp[], int out_yp[]){
 
     // O(nlogn)
-    
+
     using namespace std;
 
     struct TNode* t_l = NULL;
@@ -318,11 +318,18 @@ void Torus::XxYxMainProcess(int h, int d, float* p, float* q,
 
     assert(CountLesser(t_r, 1000.0) == n);
     assert(CountLesser(t_r, -1.0) == 0);
-
+   
     for(int i=1; i<=n; i++){
+        preOrder(t_l);
         out_xp[i-1] = CountLesser(t_l, p[i-1]);
+        cout << "threshold:" << p[i-1] << endl;
+        cout << "out:" << out_xp[i-1] << endl << endl;
         t_r = deleteNode(t_r, q[i-1]);
+
+        preOrder(t_r);
         out_yp[i-1] = (i-1-out_xp[i-1]) + CountLesser(t_r, p[i-1]);
+        cout << "threshold:" << p[i-1] << endl;
+        cout << "out:" << (i-1-out_xp[i-1]) << "+ " << CountLesser(t_r, p[i-1]) << "=" << out_yp[i-1] << endl << endl;
         t_l = insert(t_l, q[i-1]);
     }
 
@@ -445,32 +452,32 @@ void Torus::calcRoutingProbabilities() {
                              combination(yq[ii-1], h-kk-1) *
                              qs[ii-1]);
 
-                        // std::cout << "ps[i]=" << ps[ii-1] << std::endl;
-                        // std::cout << "qs[i]=" << qs[ii-1] << std::endl;
-                        // std::cout << "xp[i]=" << xp[ii-1] << std::endl;
-                        // std::cout << "k=" << kk << std::endl;
+                        std::cout << "ps[i]=" << ps[ii-1] << std::endl;
+                        std::cout << "qs[i]=" << qs[ii-1] << std::endl;
+                        std::cout << "xp[i]=" << xp[ii-1] << std::endl;
+                        std::cout << "k=" << kk << std::endl;
 
-                        // std::cout << "yp[i]=" << yp[ii-1] << std::endl;
-                        // std::cout << "h-k1=" << h-kk-1 << std::endl;
-                        // std::cout << "xq[i]=" << xq[ii-1] << std::endl;
-                        // std::cout << "yq[i]=" << yq[ii-1] << std::endl;
+                        std::cout << "yp[i]=" << yp[ii-1] << std::endl;
+                        std::cout << "h-k1=" << h-kk-1 << std::endl;
+                        std::cout << "xq[i]=" << xq[ii-1] << std::endl;
+                        std::cout << "yq[i]=" << yq[ii-1] << std::endl;
                         
-                        // std::cout << "c*c=" << combination(xp[ii-1], kk) * 
-                        //      combination(yp[ii-1], h-kk-1)<< std::endl;
-                        // std::cout << "p*c*c=" <<combination(xp[ii-1], kk) * 
-                        //      combination(yp[ii-1], h-kk-1) *
-                        //      ps[ii-1]<< std::endl;
+                        std::cout << "c*c=" << combination(xp[ii-1], kk) * 
+                             combination(yp[ii-1], h-kk-1)<< std::endl;
+                        std::cout << "p*c*c=" <<combination(xp[ii-1], kk) * 
+                             combination(yp[ii-1], h-kk-1) *
+                             ps[ii-1]<< std::endl << std::endl;
                     }
                 }
                 p /= pow(2, h) * combination(n, h);
                 
-                //std::cout << "setp=" << p << std::endl;
+                std::cout << "setp=" << p << std::endl;
                 setProbability(a, h, d, p);
-                //std::cout << "h,d=" << h << "," << d << std::endl;
+                std::cout << "h,d=" << h << "," << d << std::endl;
 
-                //std::cout << std::endl;
+                std::cout << std::endl;
             }
-            //std::cout << std::endl;
+            std::cout << std::endl;
         }
 }   
 
