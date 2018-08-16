@@ -205,21 +205,20 @@ void Torus::setRandomFaultyLinks(double p_faulty) {
 
 
 double Torus::calc_p_i(Node *a, Node *a_plus_e, int h, int d) {
+    if (hasFaultyLink(a, a_plus_e))
+        return 0.0;
+
     double p = 0.0;
     if (h == 1){
-        if (not hasFaultyLink(a, a_plus_e))
-            p += getProbability(a_plus_e, h, d - 1);
+        p += getProbability(a_plus_e, h, d - 1);
     }else if (h == d){
-        if (not hasFaultyLink(a, a_plus_e))
-            p += getProbability(a_plus_e, h - 1, d - 1);
+        p += getProbability(a_plus_e, h - 1, d - 1);
     }else{
-        if (not hasFaultyLink(a, a_plus_e)){
-            p += (h - 1) * getProbability(a_plus_e, h - 1, d - 1) +
-                 (d - h) * getProbability(a_plus_e, h, d - 1);
-            p /= (d - 1);
-        }
+        p += (h - 1) * getProbability(a_plus_e, h - 1, d - 1) +
+             (d - h) * getProbability(a_plus_e, h, d - 1);
+        p /= (d - 1);
     }
-    assert(0.0 <= p and p <= 1.0);
+    assert(0.0 <= p);// and p <= 1.0);
     return p;
 }
 
@@ -302,7 +301,7 @@ void Torus::calcPQ(Node *a, int h, int d, double *p, double *q){
         q[i] = calc_p_i(a, &nodes[node_value_index[e_minus]], h, d);
     }
 }
- 
+
 
 void Torus::XxYxMainProcess(int h, int d, double* p, double* q,
         int out_xp[], int out_yp[]){
@@ -321,16 +320,16 @@ void Torus::XxYxMainProcess(int h, int d, double* p, double* q,
     assert(CountLesser(t_r, -1.0) == 0);
    
     for(int i=1; i<=n; i++){
-        preOrder(t_l);
+        // preOrder(t_l);
         out_xp[i-1] = CountLesser(t_l, p[i-1]);
-        cout << "threshold:" << p[i-1] << endl;
-        cout << "out:" << out_xp[i-1] << endl << endl;
+        // cout << "threshold:" << p[i-1] << endl;
+        // cout << "out:" << out_xp[i-1] << endl << endl;
         t_r = deleteNode(t_r, q[i-1]);
 
-        preOrder(t_r);
+        // preOrder(t_r);
         out_yp[i-1] = (i-1-out_xp[i-1]) + CountLesser(t_r, p[i-1]);
-        cout << "threshold:" << p[i-1] << endl;
-        cout << "out:" << (i-1-out_xp[i-1]) << "+ " << CountLesser(t_r, p[i-1]) << "=" << out_yp[i-1] << endl << endl;
+        // cout << "threshold:" << p[i-1] << endl;
+        // cout << "out:" << (i-1-out_xp[i-1]) << "+ " << CountLesser(t_r, p[i-1]) << "=" << out_yp[i-1] << endl << endl;
         t_l = insert(t_l, q[i-1]);
     }
 
@@ -454,6 +453,7 @@ void Torus::calcRoutingProbabilities() {
                 for(int ii=1; ii<=n; ii++){
                     for(int kk=0; kk<=h-1; kk++){
                         // xp yp xq yq は 0-origin なので ii から 1 引く
+
                         p += pow(2, kk) * ( 
                              combination(xp[ii-1], kk) * 
                              combination(yp[ii-1], h-kk-1) *
@@ -461,52 +461,56 @@ void Torus::calcRoutingProbabilities() {
                              combination(xq[ii-1], kk) *
                              combination(yq[ii-1], h-kk-1) *
                              qs[ii-1]);
-
-                        cout << pow(2, kk) << "*(" << combination(xp[ii-1], kk) << "*"
-                             << combination(yp[ii-1], h-kk-1) << "*" << ps[ii-1]
-                             << "+"<<combination(xq[ii-1], kk) <<"*"<<
-                             combination(yq[ii-1], h-kk-1) <<"*"<<
-                             qs[ii-1]<<")="<<pow(2, kk) * ( 
-                             combination(xp[ii-1], kk) * 
-                             combination(yp[ii-1], h-kk-1) *
-                             ps[ii-1] +
-                             combination(xq[ii-1], kk) *
-                             combination(yq[ii-1], h-kk-1) *
-                             qs[ii-1])<<endl;
-
-                        std::cout << "ps[i]=" << ps[ii-1] << std::endl;
-                        std::cout << "qs[i]=" << qs[ii-1] << std::endl;
-                        std::cout << "xp[i]=" << xp[ii-1] << std::endl;
-                        std::cout << "k=" << kk << std::endl;
-
-                        std::cout << "yp[i]=" << yp[ii-1] << std::endl;
-                        std::cout << "h-k1=" << h-kk-1 << std::endl;
-                        std::cout << "xq[i]=" << xq[ii-1] << std::endl;
-                        std::cout << "yq[i]=" << yq[ii-1] << std::endl;
                         
-                        std::cout << "c*c=" << combination(xp[ii-1], kk) * 
-                             combination(yp[ii-1], h-kk-1)<< std::endl;
-                        std::cout << "p*c*c=" <<combination(xp[ii-1], kk) * 
-                             combination(yp[ii-1], h-kk-1) *
-                             ps[ii-1]<< std::endl << std::endl;
+
+                        // cout << pow(2, kk) << "*(" << combination(xp[ii-1], kk) << "*"
+                        //      << combination(yp[ii-1], h-kk-1) << "*" << ps[ii-1]
+                        //      << "+"<<combination(xq[ii-1], kk) <<"*"<<
+                        //      combination(yq[ii-1], h-kk-1) <<"*"<<
+                        //      qs[ii-1]<<")="<<pow(2, kk) * ( 
+                        //      combination(xp[ii-1], kk) * 
+                        //      combination(yp[ii-1], h-kk-1) *
+                        //      ps[ii-1] +
+                        //      combination(xq[ii-1], kk) *
+                        //      combination(yq[ii-1], h-kk-1) *
+                        //      qs[ii-1])<<endl;
+
+
+                        // std::cout << "ps[i]=" << ps[ii-1] << std::endl;
+                        // std::cout << "qs[i]=" << qs[ii-1] << std::endl;
+                        // std::cout << "xp[i]=" << xp[ii-1] << std::endl;
+                        // std::cout << "k=" << kk << std::endl;
+
+                        // std::cout << "yp[i]=" << yp[ii-1] << std::endl;
+                        // std::cout << "h-k1=" << h-kk-1 << std::endl;
+                        // std::cout << "xq[i]=" << xq[ii-1] << std::endl;
+                        // std::cout << "yq[i]=" << yq[ii-1] << std::endl;
+                        
+                        // std::cout << "c*c=" << combination(xp[ii-1], kk) * 
+                        //      combination(yp[ii-1], h-kk-1)<< std::endl;
+                        // std::cout << "p*c*c=" <<combination(xp[ii-1], kk) * 
+                        //      combination(yp[ii-1], h-kk-1) *
+                        //      ps[ii-1]<< std::endl << std::endl;
                     }
                 }
 
-                std::cout << "bunshi:" << p << std::endl;
+                // std::cout << "bunshi:" << p << std::endl;
                 p /= pow(2, h) * combination(n, h);
-                std::cout << "bunbo:" << pow(2, h) * combination(n, h) << std::endl;;
-                std::cout << "setp=" << p << std::endl;
+                // std::cout << "bunbo:" << pow(2, h) * combination(n, h) << std::endl;;
+                // std::cout << "h,d=" << h << "," << d << std::endl;
+
+                // std::cout << "setp=" << p << std::endl;
                 setProbability(a, h, d, p);
                 
-                std::cout << "h,d=" << h << "," << d << std::endl;
+                // std::cout << "h,d=" << h << "," << d << std::endl;
 
-                std::cout << std::endl;
+                // std::cout << std::endl;
             }
-            std::cout << std::endl;
+            // std::cout << std::endl;
         }
 }   
 
-
+ 
 // 1-α(a, b)
 bool Torus::hasFaultyLink(Node *a, Node *b) {
     // 対称行列で上三角しか使ってないので入れ替えて補う
@@ -537,7 +541,7 @@ bool Torus::hasLink(Node *a, Node *b) {
 void Torus::setProbability(Node *a, int h, int d, double p) {
     assert(0 < h and h <= n);
     assert(0 < d and d <= diameter);
-    assert(0.0 <= p and p <= 1.0);
+    assert(0.0 <= p); //and p <= 1.0);
 
     // setProbability()によってセットされるのが1回目であることをチェック
     assert(nodes[a->index].P[h-1][d-1] == -1);

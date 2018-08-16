@@ -427,12 +427,15 @@ void delete_tree(struct TNode* root){
 //     root = insert(root, 0.8);
  
 //     root = deleteNode(root, 0.6);
-//     threshold = 0.7;
+//     root = deleteNode(root, 0.6);
+//     root = deleteNode(root, 0.7);
+
+//     threshold = 0.8;
 //     preOrder(root);
 //     printf("\nNumber of elements lesser than %3f are %d\n",
 //            threshold, CountLesser(root, threshold));
 
-//     assert(CountLesser(root, threshold) == 2);
+//     assert(CountLesser(root, threshold) == 3);
 
 //     return 0;
 // }
