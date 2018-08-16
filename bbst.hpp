@@ -6,7 +6,7 @@
 #include <iostream>
 
 struct TNode {
-    float key;
+    double key;
     struct TNode* left, *right;
     int height;
     int desc;
@@ -27,7 +27,7 @@ int max(int a, int b)
     return (a > b) ? a : b;
 }
  
-struct TNode* newNode(float key)
+struct TNode* newNode(double key)
 {
     struct TNode* node = (struct TNode*)
                     malloc(sizeof(struct TNode));
@@ -104,7 +104,7 @@ int getBalance(struct TNode* N)
     return height(N->left) - height(N->right);
 }
  
-struct TNode* insert(struct TNode* node, float key)
+struct TNode* insert(struct TNode* node, double key)
 {
     /* 1. Perform the normal BST rotation */
     if (node == NULL)
@@ -180,7 +180,7 @@ struct TNode* minValueNode(struct TNode* node)
 // Recursive function to delete a node with given key
 // from subtree with given root. It returns root of
 // the modified subtree.
-struct TNode* deleteNode(struct TNode* root, float key)
+struct TNode* deleteNode(struct TNode* root, double key)
 {
     // STEP 1: PERFORM STANDARD BST DELETE
  
@@ -297,7 +297,7 @@ void preOrder(struct TNode* root)
 }
  
 // // Returns count of
-// int CountGreater(struct TNode* root, float x)
+// int CountGreater(struct TNode* root, double x)
 // {
 //     int res = 0;
  
@@ -323,7 +323,7 @@ void preOrder(struct TNode* root)
 // }
 
 // Returns count of
-int CountLesser(struct TNode* root, float x)
+int CountLesser(struct TNode* root, double x)
 {
     // less means a < b. not a <= b.
     int res = 0;
@@ -379,7 +379,7 @@ void delete_tree(struct TNode* root){
 //     root = insert(root, 0.875);
 //     root = insert(root, 0.755);
  
-//     float threshold = 0.8;
+//     double threshold = 0.8;
 //     preOrder(root);
 //     printf("\nNumber of elements lesser than %3f are %d\n",
 //            threshold, CountLesser(root, threshold));

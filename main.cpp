@@ -65,7 +65,7 @@ int main(int argc, char* argv[]){
             // start = std::chrono::system_clock::now();
 
 
-            t->setRandomFaultyLinks(p_faulty);
+            t->setRandomFaultyLinks((double)p_faulty);
 
             //
             // end = std::chrono::system_clock::now();       // 計測終了時刻を保存

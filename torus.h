@@ -10,7 +10,7 @@ typedef struct NODE
     int index;
     int *value; // n-dimension vector
 
-    float **P;
+    double **P;
     /*
      * P: matrix of probabilities
      * P contain probability of node depends on h and d
@@ -46,8 +46,8 @@ public:
     bool hasLink(Node *a, Node *b);
     void setFaultyLink(Node *a, Node *b);
     bool hasFaultyLink(Node *a, Node *b);
-    void setProbability(Node *a, int h, int d, float p);
-    float getProbability(Node *a, int h, int d);
+    void setProbability(Node *a, int h, int d, double p);
+    double getProbability(Node *a, int h, int d);
     // ↑ ====== just to read/write data
 
     // 各種距離の計算
@@ -85,22 +85,22 @@ public:
     void printProbabilities();
 
     // ↓割りと重要な関数たち Very important algorithms
-    void setRandomFaultyLinks(float p_faulty);
+    void setRandomFaultyLinks(double p_faulty);
 
     std::string get_e_plus(Node *a, int i);
     std::string get_e_minus(Node *a, int i);
 
     // algorithm P
     void calcRoutingProbabilities();
-    float calc_p_i(Node *a, Node *a_plus_e, int h, int d);
+    double calc_p_i(Node *a, Node *a_plus_e, int h, int d);
 
-    void XxYxPreProcess(Node *a, int h, int d, float *p, float *q);
-    void XxYxMainProcess(int h, int d, float* p, float* q,
-        float out_p[], int out_xp[], int out_yp[]);
-    void XpYp(Node *a, int h, int d,
-        float out_p[], int out_xp[], int out_yp[]);
-    void XqYq(Node *a, int h, int d,
-        float out_q[], int out_xq[], int out_yq[]);
+    void calcPQ(Node *a, int h, int d, double *p, double *q);
+    void XxYxMainProcess(int h, int d, double* p, double* q,
+        int out_xp[], int out_yp[]);
+    void XpYp(Node *a, int h, int d, double in_p[], double in_q[],
+         int out_xp[], int out_yp[]);
+    void XqYq(Node *a, int h, int d, double in_p[], double in_q[],
+         int out_xq[], int out_yq[]);
 
     // routing algorithms
     int route(Node* c, Node* t, std::unordered_map<int, bool> visited, int d);
@@ -110,6 +110,6 @@ public:
     int bfs(Node *c, Node *t, std::unordered_map<int, bool> visited);
 };
 
-void sortCouple(float *a, float *b, int len);
+void sortCouple(double *a, double *b, int len);
 
 #endif //ROUTING_TORUS_H
