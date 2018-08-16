@@ -342,7 +342,18 @@ int CountLesser(struct TNode* root, float x)
         }
     }
     return res;
-} 
+}
+
+
+void delete_tree(struct TNode* root){
+    if(root == NULL)
+        return;
+        
+    delete_tree(root->left);
+    delete_tree(root->right);
+
+    free(root);
+}
 
 // /* Driver program to test above function*/
 // int main()

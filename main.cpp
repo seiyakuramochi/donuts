@@ -11,7 +11,7 @@
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/io.hpp>
 
-#define N 1000
+#define N 10000
 #define DELIVERY_FAIL (-1)
 
 int main(int argc, char* argv[]){
@@ -20,7 +20,7 @@ int main(int argc, char* argv[]){
     double p_faulty;
     double mean_d_route, mean_d_brute, mean_d_bfs;
     int n, k;
-
+ 
     n = atoi(argv[1]);
     k = atoi(argv[2]);
     p_faulty = atof(argv[3]);
@@ -83,6 +83,10 @@ int main(int argc, char* argv[]){
             // msec = std::chrono::duration_cast<std::chrono::milliseconds>(dur).count();
             // //std::cout << msec << "milli sec (P) \n";
             // start = std::chrono::system_clock::now();
+
+            //t->printProbabilities();
+            //t->printFaultyLinks();
+            //return 0;
 
 
             int from = dice(mt);

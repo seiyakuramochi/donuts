@@ -157,20 +157,20 @@ void Torus::printFaultyLinks() {
     for(int i=0; i<V; i++) {
         for (int j=0; j<V; j++)
             if(F(i, j) == 1){
-                std::cout << "(";
+                std::cout << "((";
                 for(int l=0; l<n; l++) {
                     std::cout << nodes[i].value[l];
                     if(l < n-1)
                         std::cout << ", ";
                 }
                 //std::cout << std::endl;
-                std::cout << ")-(";
+                std::cout << "), (";
                 for(int l=0; l<n; l++){
                     std::cout << nodes[j].value[l];
                     if(l < n-1)
                         std::cout << ", ";
                 }
-                std::cout << ")" << std::endl;
+                std::cout << "))" << std::endl;
 
             };
     }
@@ -287,7 +287,7 @@ void Torus::XxYxPreProcess(Node *a, int h, int d, float *p, float *q){
     std::string e_plus, e_minus;
 
     // pとqを計算する
-    for (int i = 0; i < n; i++) {
+    for (int i=0; i<n; i++) {
         e_plus = get_e_plus(a, i);
         e_minus = get_e_minus(a, i);
  
@@ -301,10 +301,13 @@ void Torus::XxYxPreProcess(Node *a, int h, int d, float *p, float *q){
         q[i] = calc_p_i(a, &nodes[node_value_index[e_minus]], h, d);
     }
 }
-
+ 
 
 void Torus::XxYxMainProcess(int h, int d, float* p, float* q,
         float out_p[], int out_xp[], int out_yp[]){
+
+    // O(nlogn)
+    
     using namespace std;
 
     struct TNode* t_l = NULL;
@@ -326,6 +329,8 @@ void Torus::XxYxMainProcess(int h, int d, float* p, float* q,
     memcpy(out_p, p, n * sizeof(float));
     free(p);
     free(q);
+    delete_tree(t_r);
+    delete_tree(t_l);
 }
 
 
@@ -421,7 +426,6 @@ void Torus::calcRoutingProbabilities() {
      */
     for (int d = 2; d <= diameter; d++)
         for (int h = 1; h <= std::min(n, d); h++) {
-
             // for all nodes
             for (int i = 0; i < V; i++) {
                 a = &(nodes[i]);
