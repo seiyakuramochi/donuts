@@ -2,6 +2,8 @@
 // greater than a given value in AVL
 #include <stdio.h>
 #include <stdlib.h>
+#include <cassert>
+#include <iostream>
 
 struct TNode {
     float key;
@@ -56,9 +58,13 @@ struct TNode* rightRotate(struct TNode* y)
     // calculate the number of children of x and y
     // which are changed due to rotation.
     int val = (T2 != NULL) ? T2->desc : -1;
-    y->desc = y->desc - (x->desc + 1) + (val + 1);
-    x->desc = x->desc - (val + 1) + (y->desc + 1);
- 
+    if(T2 == NULL){
+        y->desc = y->desc - (x->desc + x->count);
+        x->desc = x->desc + (y->desc + y->count);
+    }else{
+        y->desc = y->desc - (x->desc + x->count) + (val + T2->count);
+        x->desc = x->desc - (val + T2->count) + (y->desc + y->count);
+    }
     return x;
 }
  
@@ -80,9 +86,13 @@ struct TNode* leftRotate(struct TNode* x)
     // calculate the number of children of x and y
     // which are changed due to rotation.
     int val = (T2 != NULL) ? T2->desc : -1;
-    x->desc = x->desc - (y->desc + 1) + (val + 1);
-    y->desc = y->desc - (val + 1) + (x->desc + 1);
- 
+    if(T2 == NULL){
+        x->desc = x->desc - (y->desc + y->count) ;
+        y->desc = y->desc + (x->desc + x->count);
+    }else{
+        x->desc = x->desc - (y->desc + y->count) + (val + T2->count);
+        y->desc = y->desc - (val + T2->count) + (x->desc + x->count);
+    }
     return y;
 }
  
@@ -102,6 +112,7 @@ struct TNode* insert(struct TNode* node, float key)
 
     // If key already exists in BST, icnrement count and return
     if (key == node->key){
+        //std::cout << key << ", " << node->key << std::endl;
         node->count++;
         return node;
     }
@@ -227,6 +238,7 @@ struct TNode* deleteNode(struct TNode* root, float key)
  
             // Copy the inorder successor's data to this node
             root->key = temp->key;
+            root->count = temp->count;
  
             // Delete the inorder successor
             root->right = deleteNode(root->right, temp->key);
@@ -279,6 +291,8 @@ void preOrder(struct TNode* root)
         printf("%f (%d, d%d), ", root->key, root->count, root->desc);
         preOrder(root->left);
         preOrder(root->right);
+    }else{
+        printf(" NULL ");
     }
 }
  
@@ -311,18 +325,12 @@ void preOrder(struct TNode* root)
 // Returns count of
 int CountLesser(struct TNode* root, float x)
 {
+    // less means a < b. not a <= b.
     int res = 0;
 
     if(root == NULL)
         return res;
 
-    struct TNode* max_node=root; 
-    while(max_node->right != NULL)
-        max_node = max_node->right;
-
-    if(x > max_node->key)
-        return root->desc + root->count;
- 
     // Search for x. While searching, keep
     // updating res if x is lesser than
     // current node.
@@ -332,12 +340,19 @@ int CountLesser(struct TNode* root, float x)
         //printf("%d\n", root->count);
         if (root->key < x) {
             //printf("%d ", desc+2);
-            res += desc + 1 + 1;
+            if(root->left != NULL){
+                res += desc + root->count + root->left->count;
+            }else{
+                res += root->count;
+            }
             root = root->right;
         } else if (root->key > x)
             root = root->left;
         else {
-            res += desc + 1;
+            assert(root->key == x);
+            if(root->left != NULL)
+                res += desc + root->left->count;
+            assert(res > -1);
             break;
         }
     }
@@ -348,7 +363,7 @@ int CountLesser(struct TNode* root, float x)
 void delete_tree(struct TNode* root){
     if(root == NULL)
         return;
-        
+
     delete_tree(root->left);
     delete_tree(root->right);
 
@@ -359,39 +374,65 @@ void delete_tree(struct TNode* root){
 // int main()
 // {
 //     struct TNode* root = NULL;
-//     root = insert(root, 0.0);
-//     root = insert(root, 0.0);
-//     root = insert(root, 2.0);
+//     root = insert(root, 1.0);
+//     root = insert(root, 1.0);
+//     root = insert(root, 0.875);
+//     root = insert(root, 0.755);
  
-//     /* The constructed AVL Tree would be
-//           9
-//         /   \
-//         1   10
-//        / \     \
-//        0  5     11
-//       /  / \
-//     -1  2   6    */
- 
-//     printf("Preorder traversal of the constructed AVL "
-//            "tree is \n");
+//     float threshold = 0.8;
 //     preOrder(root);
-//     printf("\nNumber of elements lesser than 110.10 are %d",
-//            CountLesser(root, 2.5));
+//     printf("\nNumber of elements lesser than %3f are %d\n",
+//            threshold, CountLesser(root, threshold));
+
+//     assert(CountLesser(root, threshold) == 1);
+
+
+
+//     root = NULL;
+//     root = insert(root, 0.875);
+//     root = insert(root, 0.755);
+//     root = insert(root, 1.0);
+//     root = insert(root, 1.0);
  
-//     root = deleteNode(root, 0.0);
- 
-//     /* The AVL Tree after deletion of 10
-//          1
-//         / \
-//         0 9
-//        /  / \
-//      -1  5  11
-//         / \
-//         2  6 */
- 
-//     printf("\nPreorder traversal after deletion of 0.10 \n");
+//     threshold = 0.8;
 //     preOrder(root);
-//     printf("\nNumber of elements lesser than 110.1000 are %d",
-//            CountLesser(root, 5.5));
+//     printf("\nNumber of elements lesser than %3f are %d\n",
+//            threshold, CountLesser(root, threshold));
+//     assert(CountLesser(root, threshold) == 1);
+
+
+//     root = NULL;
+//     root = insert(root, 0);
+//     root = insert(root, 0);
+//     root = insert(root, 0);
+//     root = insert(root, 0);
+ 
+//     threshold = -0.8;
+//     preOrder(root);
+//     printf("\nNumber of elements lesser than %3f are %d\n",
+//            threshold, CountLesser(root, threshold));
+
+//     assert(CountLesser(root, threshold) == 0);
+
+
+
+//     root = NULL;
+//     root = insert(root, 0.6);
+//     root = insert(root, 0.6);
+//     root = insert(root, 0.6);
+//     root = insert(root, 0.7);
+//     root = insert(root, 0.7);
+//     root = insert(root, 0.8);
+//     root = insert(root, 0.7);
+//     root = insert(root, 0.8);
+ 
+//     root = deleteNode(root, 0.6);
+//     threshold = 0.7;
+//     preOrder(root);
+//     printf("\nNumber of elements lesser than %3f are %d\n",
+//            threshold, CountLesser(root, threshold));
+
+//     assert(CountLesser(root, threshold) == 2);
+
 //     return 0;
 // }
