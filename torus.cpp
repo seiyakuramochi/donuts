@@ -49,15 +49,15 @@ void Torus::allocate() {
 
     for(int i=0; i<V; i++){
         nodes[i].index = i;
-        nodes[i].value = (int*)malloc(n*sizeof(int));
+        nodes[i].value = new int[n];
 
         nodes[i].P = (double**)malloc(n*sizeof(double*));
         for(int j=0; j<n; j++) {
-            nodes[i].P[j] = (double *) malloc(diameter * sizeof(double));
+            nodes[i].P[j] = new double[diameter];
             std::fill_n(nodes[i].P[j], diameter, -1);
         }
 
-        nodes[i].neighbors = (int*)malloc(2*n*sizeof(int));
+        nodes[i].neighbors = new int[2*n];
     }
 }
 
@@ -198,6 +198,7 @@ void Torus::setRandomFaultyLinks(double p_faulty) {
 
         if (not hasFaultyLink(a, b)) {
             setFaultyLink(a, b);
+            assert(hasFaultyLink(a, b));
             count_faulty++;
         }
     }
@@ -227,8 +228,8 @@ void sortCouple(double *a, double *b, int len){
     // aの基準で、aとbをソートする
     using namespace std;
 
-    double *tmp_a = (double*)malloc(len*sizeof(double));
-    double *tmp_b = (double*)malloc(len*sizeof(double));
+    double *tmp_a = new double[len];
+    double *tmp_b = new double[len];
 
     // まずインデックスの列をソートする
     std::vector<int> argsort;
@@ -250,8 +251,8 @@ void sortCouple(double *a, double *b, int len){
     memcpy(a, tmp_a, sizeof(double)*len);
     memcpy(b, tmp_b, sizeof(double)*len);
 
-    free(tmp_a);
-    free(tmp_b);
+    delete[] tmp_a;
+    delete[] tmp_b;
 }
 
 
@@ -335,8 +336,8 @@ void Torus::XxYxMainProcess(int h, int d, double* p, double* q,
 
     assert(CountLesser(t_l, 1000.0) == n);
 
-    free(p);
-    free(q);
+    delete[] p;
+    delete[] q;
     delete_tree(t_r);
     delete_tree(t_l);
 }
@@ -346,8 +347,8 @@ void Torus::XpYp(Node *a, int h, int d, double in_p[], double in_q[],
      double out_p[], int out_xp[], int out_yp[]) {
 
     // ソートするので、pとqの領域を確保する
-    double *p = (double*)malloc(n*sizeof(double));
-    double *q = (double*)malloc(n*sizeof(double));
+    double *p = new double[n];
+    double *q = new double[n];
 
     // pとqの値をコピーする
     memcpy(p, in_p, n * sizeof(double));
@@ -370,8 +371,8 @@ void Torus::XqYq(Node *a, int h, int d, double in_p[], double in_q[],
       double out_q[], int out_xq[], int out_yq[]) {
 
     // ソートするので、pとqの領域を確保する
-    double *p = (double*)malloc(n*sizeof(double));
-    double *q = (double*)malloc(n*sizeof(double));
+    double *p = new double[n];
+    double *q = new double[n];
     
     // pとqの値をコピーする
     memcpy(p, in_p, n * sizeof(double));
@@ -407,20 +408,19 @@ void Torus::calcRoutingProbabilities() {
     double p, p11;
     Node *neighbor;
     
-    out_p = (double *)malloc(n*sizeof(double));
-    out_q = (double *)malloc(n*sizeof(double));
-    ps = (double *)malloc(n*sizeof(double));
-    qs = (double *)malloc(n*sizeof(double));
-    xp = (int *)malloc(n*sizeof(int));
-    yp = (int *)malloc(n*sizeof(int));
-    xq = (int *)malloc(n*sizeof(int));
-    yq = (int *)malloc(n*sizeof(int));
+    out_p = new double[n];
+    out_q = new double[n];
+    ps = new double[n];
+    qs = new double[n];
+    xp = new int[n];
+    yp = new int[n];
+    xq = new int[n];
+    yq = new int[n];
 
     /*
      * まず全てのノードについてP(a)_{1,1}を計算
      * First, calculate P(a)_{1,1} for all nodes
      */
-//#pragma omp parallel for
     for(int i=0; i<V; i++) {
         a = &nodes[i];
 
@@ -431,7 +431,6 @@ void Torus::calcRoutingProbabilities() {
                 p11 += 1.0;
         }
         p11 /= 2*n;
-        //std::cout << "p11=" << p11 << std::endl;
         setProbability(a, 1, 1, p11);
     }
 
@@ -444,10 +443,8 @@ void Torus::calcRoutingProbabilities() {
      * P(a)_{h,d} needs P(a)_{h,d-1} and P(a)_{h-1,d-1}.
      * Calculation starts with P(a)_{1,2}.
      */
-    using namespace std;
     for (int d = 2; d <= diameter; d++)
-        for (int h = 1; h <= std::min(n, d); h++) {
-            // for all nodes
+        for (int h = 1; h <= std::min(n, d); h++)
             for (int i = 0; i < V; i++) {
                 a = &(nodes[i]);
 
@@ -456,10 +453,9 @@ void Torus::calcRoutingProbabilities() {
                 XqYq(a, h, d, ps, qs, out_q, xq, yq);
 
                 p = 0.0;
-                for(int ii=1; ii<=n; ii++){
-                    for(int kk=0; kk<=h-1; kk++){
+                for(int ii=1; ii<=n; ii++)
+                    for(int kk=0; kk<=h-1; kk++) {
                         // xp yp xq yq は 0-origin なので ii から 1 引く
-
                         p += pow(2, kk) * ( 
                              combination(xp[ii-1], kk) * 
                              combination(yp[ii-1], h-kk-1) *
@@ -467,60 +463,20 @@ void Torus::calcRoutingProbabilities() {
                              combination(xq[ii-1], kk) *
                              combination(yq[ii-1], h-kk-1) *
                              out_q[ii-1]);
-
-                        // cout << pow(2, kk) << "*(" << combination(xp[ii-1], kk) << "*"
-                        //      << combination(yp[ii-1], h-kk-1) << "*" << ps[ii-1]
-                        //      << "+"<<combination(xq[ii-1], kk) <<"*"<<
-                        //      combination(yq[ii-1], h-kk-1) <<"*"<<
-                        //      qs[ii-1]<<")="<<pow(2, kk) * ( 
-                        //      combination(xp[ii-1], kk) * 
-                        //      combination(yp[ii-1], h-kk-1) *
-                        //      ps[ii-1] +
-                        //      combination(xq[ii-1], kk) *
-                        //      combination(yq[ii-1], h-kk-1) *
-                        //      qs[ii-1])<<endl;
-
-
-                        // std::cout << "ps[i]=" << ps[ii-1] << std::endl;
-                        // std::cout << "qs[i]=" << qs[ii-1] << std::endl;
-                        // std::cout << "xp[i]=" << xp[ii-1] << std::endl;
-                        // std::cout << "k=" << kk << std::endl;
-
-                        // std::cout << "yp[i]=" << yp[ii-1] << std::endl;
-                        // std::cout << "h-k1=" << h-kk-1 << std::endl;
-                        // std::cout << "xq[i]=" << xq[ii-1] << std::endl;
-                        // std::cout << "yq[i]=" << yq[ii-1] << std::endl;
-                        
-                        // std::cout << "c*c=" << combination(xp[ii-1], kk) * 
-                        //      combination(yp[ii-1], h-kk-1)<< std::endl;
-                        // std::cout << "p*c*c=" <<combination(xp[ii-1], kk) * 
-                        //      combination(yp[ii-1], h-kk-1) *
-                        //      ps[ii-1]<< std::endl << std::endl;
                     }
-                }
 
-                // std::cout << "bunshi:" << p << std::endl;
                 p /= pow(2, h) * combination(n, h);
-                // std::cout << "bunbo:" << pow(2, h) * combination(n, h) << std::endl;;
-                // std::cout << "h,d=" << h << "," << d << std::endl;
-
-                // std::cout << "setp=" << p << std::endl;
-                setProbability(a, h, d, p);
-                
-                // std::cout << "h,d=" << h << "," << d << std::endl;
-
-                // std::cout << std::endl;
+                setProbability(a, h, d, p);   
             }
-            // std::cout << std::endl;
-        }
-    free(out_p);
-    free(out_q);
-    free(ps);
-    free(qs );
-    free(xp );
-    free(yp );
-    free(xq );
-    free(yq );
+
+    delete[] out_p;
+    delete[] out_q;
+    delete[] ps;
+    delete[] qs ;
+    delete[] xp ;
+    delete[] yp ;
+    delete[] xq ;
+    delete[] yq ;
 }   
 
  
@@ -780,11 +736,11 @@ Torus::~Torus() {
     F.clear();
 
     for(int i=0; i<V; i++){
-        free(nodes[i].value);
+        delete[] nodes[i].value;
         for(int j=0; j<n; j++)
-            free(nodes[i].P[j]);
+            delete[] nodes[i].P[j];
         free(nodes[i].P);
-        free(nodes[i].neighbors);
+        delete[] nodes[i].neighbors;
     }
     free(nodes);
 }
