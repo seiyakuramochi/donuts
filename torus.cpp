@@ -12,7 +12,7 @@
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/io.hpp>
 
-#include "torus.h"
+#include "torus.hpp"
 
 #define DELIVERY_FAIL -1;
 

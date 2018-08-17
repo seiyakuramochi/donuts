@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <chrono>
  
-#include "torus.h"
+#include "torus.hpp"
  
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/io.hpp>
@@ -17,16 +17,13 @@
 int main(int argc, char* argv[]){
     using namespace std;
 
-    double p_faulty;
-    double mean_d_route, mean_d_brute, mean_d_bfs;
-    int n, k;
- 
-    n = atoi(argv[1]);
-    k = atoi(argv[2]);
-    p_faulty = atof(argv[3]);
+    int n = atoi(argv[1]);
+    int k = atoi(argv[2]);
+    double p_faulty = atof(argv[3]);
     random_device rd;
     mt19937 mt(rd());
 
+    double mean_d_route=0, mean_d_brute=0, mean_d_bfs=0;
     int n_brute_success = 0, n_route_success=0, n_bfs_success=0;
     int n_loop = N;
 
@@ -38,12 +35,8 @@ int main(int argc, char* argv[]){
     double* d_brutes = new double[n_loop];
     double* d_bfss = new double[n_loop];
 
-    mean_d_route = 0;
-    mean_d_brute = 0;
-    mean_d_bfs = 0;
-
     uniform_int_distribution<int> dice(0, static_cast<int>(pow(k, n) - 1));
-    
+
     // パラレルに実行される 同じデータにアクセスしないように注意
 #pragma omp parallel for
     for (int i = 0; i < n_loop; i++) {
@@ -68,20 +61,20 @@ int main(int argc, char* argv[]){
 
     // データを集計する
     for(int i=0; i<n_loop; i++){
-        mean_d_bfs += d_bfss[i];
+        if(route_success[i]){
+            n_route_success++;
+            mean_d_route += d_routes[i];
+        }
 
         if(brute_success[i]){
             n_brute_success++;
             mean_d_brute += d_brutes[i];
         }
 
-        if(route_success[i]){
-            n_route_success++;
-            mean_d_route += d_routes[i];
-        }
-
-        if(bfs_success[i])
+        if(bfs_success[i]){
             n_bfs_success++;
+            mean_d_bfs += d_bfss[i];
+        }
     }
 
     double p_route_success = n_route_success / double(N);
