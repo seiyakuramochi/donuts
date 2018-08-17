@@ -56,6 +56,11 @@ int main(int argc, char* argv[]){
         d_bfss[i] = t->bfs(&(t->nodes[from]), &(t->nodes[to]), *(new std::unordered_map<int, bool>));
         bfs_success[i] = (d_bfss[i] != DELIVERY_FAIL);
 
+        if(not bfs_success[i]){
+            assert(not route_success[i]);
+            assert(not brute_success[i]);
+        }
+
         delete t;
     }
 
@@ -77,9 +82,9 @@ int main(int argc, char* argv[]){
         }
     }
 
-    double p_route_success = n_route_success / double(N);
-    double p_brute_success = n_brute_success / double(N);
-    double p_bfs_success = n_bfs_success / double(N);
+    double p_route_success = n_route_success / (double)n_bfs_success;
+    double p_brute_success = n_brute_success / (double)n_bfs_success;
+    double p_bfs_success = n_bfs_success / (double)n_bfs_success;
 
     cout << p_faulty << ", "
          << n << ", "
