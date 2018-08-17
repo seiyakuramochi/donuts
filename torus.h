@@ -98,9 +98,9 @@ public:
     void XxYxMainProcess(int h, int d, double* p, double* q,
         int out_xp[], int out_yp[]);
     void XpYp(Node *a, int h, int d, double in_p[], double in_q[],
-         int out_xp[], int out_yp[]);
+         double out_p[], int out_xp[], int out_yp[]);
     void XqYq(Node *a, int h, int d, double in_p[], double in_q[],
-         int out_xq[], int out_yq[]);
+         double out_p[], int out_xp[], int out_yp[]);
 
     // routing algorithms
     int route(Node* c, Node* t, std::unordered_map<int, bool> visited, int d);

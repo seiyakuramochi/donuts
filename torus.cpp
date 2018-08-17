@@ -343,7 +343,7 @@ void Torus::XxYxMainProcess(int h, int d, double* p, double* q,
 
 
 void Torus::XpYp(Node *a, int h, int d, double in_p[], double in_q[],
-     int out_xp[], int out_yp[]) {
+     double out_p[], int out_xp[], int out_yp[]) {
 
     // ソートするので、pとqの領域を確保する
     double *p = (double*)malloc(n*sizeof(double));
@@ -357,6 +357,8 @@ void Torus::XpYp(Node *a, int h, int d, double in_p[], double in_q[],
     // ので、pの大きさベースで確率の順序に並び替える(破壊的変更)
     sortCouple(p, q, n);
 
+    memcpy(out_p, p, n * sizeof(double));
+
     assert(p[0] <= p[1]);
 
     // xpとypを計算する
@@ -365,7 +367,7 @@ void Torus::XpYp(Node *a, int h, int d, double in_p[], double in_q[],
 
 
 void Torus::XqYq(Node *a, int h, int d, double in_p[], double in_q[],
-         int out_xq[], int out_yq[]) {
+      double out_q[], int out_xq[], int out_yq[]) {
 
     // ソートするので、pとqの領域を確保する
     double *p = (double*)malloc(n*sizeof(double));
@@ -378,6 +380,8 @@ void Torus::XqYq(Node *a, int h, int d, double in_p[], double in_q[],
     // ここでp[i]とq[i]は次元順序になっている
     // ので、qの大きさベースで確率の順序に並び替える(破壊的変更)
     sortCouple(q, p, n);
+
+    memcpy(out_q, q, n * sizeof(double));
 
     assert(q[0] <= q[1]);
 
@@ -397,12 +401,14 @@ int combination(int n, int r){
 
 // procedure P(a)
 void Torus::calcRoutingProbabilities() {
-    double *ps, *qs;
+    double *ps, *qs, *out_p, *out_q;
     int *xp, *yp, *xq, *yq;
     Node *a;
     double p, p11;
     Node *neighbor;
-
+    
+    out_p = (double *)malloc(n*sizeof(double));
+    out_q = (double *)malloc(n*sizeof(double));
     ps = (double *)malloc(n*sizeof(double));
     qs = (double *)malloc(n*sizeof(double));
     xp = (int *)malloc(n*sizeof(int));
@@ -446,8 +452,8 @@ void Torus::calcRoutingProbabilities() {
                 a = &(nodes[i]);
 
                 calcPQ(a, h, d, ps, qs);
-                XpYp(a, h, d, ps, qs, xp, yp);
-                XqYq(a, h, d, ps, qs, xq, yq);
+                XpYp(a, h, d, ps, qs, out_p, xp, yp);
+                XqYq(a, h, d, ps, qs, out_q, xq, yq);
 
                 p = 0.0;
                 for(int ii=1; ii<=n; ii++){
@@ -457,11 +463,10 @@ void Torus::calcRoutingProbabilities() {
                         p += pow(2, kk) * ( 
                              combination(xp[ii-1], kk) * 
                              combination(yp[ii-1], h-kk-1) *
-                             ps[ii-1] +
+                             out_p[ii-1] +
                              combination(xq[ii-1], kk) *
                              combination(yq[ii-1], h-kk-1) *
-                             qs[ii-1]);
-                        
+                             out_q[ii-1]);
 
                         // cout << pow(2, kk) << "*(" << combination(xp[ii-1], kk) << "*"
                         //      << combination(yp[ii-1], h-kk-1) << "*" << ps[ii-1]
@@ -508,6 +513,14 @@ void Torus::calcRoutingProbabilities() {
             }
             // std::cout << std::endl;
         }
+    free(out_p);
+    free(out_q);
+    free(ps);
+    free(qs );
+    free(xp );
+    free(yp );
+    free(xq );
+    free(yq );
 }   
 
  
