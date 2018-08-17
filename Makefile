@@ -1,5 +1,5 @@
 CXX := g++
-CXXFLAGS := -Wall -c -std=c++11 -g -ggdb
+CXXFLAGS := -Wall -c -std=c++11 -O
 main: main.o torus.o
 	$(CXX) -o main main.o torus.o
 main.o: main.cpp
