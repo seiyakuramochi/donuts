@@ -36,7 +36,7 @@ int main(int argc, char* argv[]){
 
     uniform_int_distribution<int> dice(0, static_cast<int>(pow(k, n) - 1));
 
-    assert(0.0 <= p_faulty < 1.0);
+    assert(0.0 <= p_faulty and p_faulty < 1.0);
 
     // パラレルに実行される 同じデータにアクセスしないように注意
 #pragma omp parallel for
