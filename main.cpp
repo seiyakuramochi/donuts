@@ -24,12 +24,11 @@ int main(int argc, char* argv[]){
     mt19937 mt(rd());
 
     double mean_d_route=0, mean_d_brute=0, mean_d_bfs=0;
-    int n_brute_success = 0, n_route_success=0, n_bfs_success=0;
+    int n_brute_success = 0, n_route_success=0;
     int n_loop = N;
 
     bool* route_success = new bool[n_loop];
     bool* brute_success = new bool[n_loop];
-    bool* bfs_success = new bool[n_loop];
 
     double* d_routes = new double[n_loop];
     double* d_brutes = new double[n_loop];
@@ -37,31 +36,38 @@ int main(int argc, char* argv[]){
 
     uniform_int_distribution<int> dice(0, static_cast<int>(pow(k, n) - 1));
 
+    assert(0.0 <= p_faulty < 1.0);
+
     // パラレルに実行される 同じデータにアクセスしないように注意
 #pragma omp parallel for
     for (int i = 0; i < n_loop; i++) {
-        Torus *t = new Torus(n, k);
-        t->setRandomFaultyLinks((double)p_faulty);
-        t->calcRoutingProbabilities();
+        bool has_non_faulty_route = false;
+        while(true){
+            // step 1
+            Torus *t = new Torus(n, k);
+            t->setRandomFaultyLinks((double)p_faulty);
 
-        int from = dice(mt);
-        int to = dice(mt);
+            // step 2
+            int from = dice(mt);
+            int to = dice(mt);
+            d_bfss[i] = t->bfs(&(t->nodes[from]), &(t->nodes[to]), *(new std::unordered_map<int, bool>));
+            has_non_faulty_route = (d_bfss[i] != DELIVERY_FAIL);
+            if (not has_non_faulty_route){
+                delete t;
+                continue;
+            }
+            
+            // step 3
+            d_brutes[i] = t->brute(&(t->nodes[from]), &(t->nodes[to]), *(new std::unordered_map<int, bool>), 0);
+            brute_success[i] = (d_brutes[i] != DELIVERY_FAIL);
 
-        d_brutes[i] = t->brute(&(t->nodes[from]), &(t->nodes[to]), *(new std::unordered_map<int, bool>), 0);
-        brute_success[i] = (d_brutes[i] != DELIVERY_FAIL);
+            t->calcRoutingProbabilities();
+            d_routes[i] = t->route(&(t->nodes[from]), &(t->nodes[to]), *(new std::unordered_map<int, bool>), 0);
+            route_success[i] = (d_routes[i] != DELIVERY_FAIL);
 
-        d_routes[i] = t->route(&(t->nodes[from]), &(t->nodes[to]), *(new std::unordered_map<int, bool>), 0);
-        route_success[i] = (d_routes[i] != DELIVERY_FAIL);
-
-        d_bfss[i] = t->bfs(&(t->nodes[from]), &(t->nodes[to]), *(new std::unordered_map<int, bool>));
-        bfs_success[i] = (d_bfss[i] != DELIVERY_FAIL);
-
-        if(not bfs_success[i]){
-            assert(not route_success[i]);
-            assert(not brute_success[i]);
+            delete t;
+            break;
         }
-
-        delete t;
     }
 
     // データを集計する
@@ -76,24 +82,20 @@ int main(int argc, char* argv[]){
             mean_d_brute += d_brutes[i];
         }
 
-        if(bfs_success[i]){
-            n_bfs_success++;
-            mean_d_bfs += d_bfss[i];
-        }
+        assert(d_bfss[i] != DELIVERY_FAIL);
+        mean_d_bfs += d_bfss[i];
     }
 
-    double p_route_success = n_route_success / (double)n_bfs_success;
-    double p_brute_success = n_brute_success / (double)n_bfs_success;
-    double p_bfs_success = n_bfs_success / (double)n_bfs_success;
+    double p_route_success = n_route_success / (double)n_loop;
+    double p_brute_success = n_brute_success / (double)n_loop;
 
     cout << p_faulty << ", "
          << n << ", "
          << k << ", "
          << p_route_success << ", "
          << p_brute_success << ", "
-         << p_bfs_success << ", "
          << mean_d_route / n_route_success << ", "
          << mean_d_brute / n_brute_success << ", "
-         << mean_d_bfs / n_bfs_success
+         << mean_d_bfs / n_loop
          << endl;
 }
