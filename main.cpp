@@ -5,13 +5,13 @@
 #include <random>
 #include <stdlib.h>
 #include <chrono>
- 
+
 #include "torus.hpp"
  
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/io.hpp>
 
-#define N 10000
+#define N 1000
 #define DELIVERY_FAIL (-1)
 
 int main(int argc, char* argv[]){
@@ -41,6 +41,7 @@ int main(int argc, char* argv[]){
     // パラレルに実行される 同じデータにアクセスしないように注意
 #pragma omp parallel for
     for (int i = 0; i < n_loop; i++) {
+        cout << i << endl;
         bool has_non_faulty_route = false;
         while(true){
             // step 1
