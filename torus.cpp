@@ -291,10 +291,7 @@ void Torus::calcPQ(Node *a, int h, int d, double *p, double *q){
     for (int i=0; i<n; i++) {
         e_plus = get_e_plus(a, i);
         e_minus = get_e_minus(a, i);
- 
-        assert(nodes[node_value_index[e_plus]].value[0] == e_plus[0]-48);
-        assert(nodes[node_value_index[e_minus]].value[0] == e_minus[0]-48);
-        
+
         assert(hasLink(a, &nodes[node_value_index[e_plus]]));
         assert(hasLink(a, &nodes[node_value_index[e_minus]]));
 
