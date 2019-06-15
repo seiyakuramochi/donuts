@@ -39,7 +39,22 @@ struct TNode* newNode(double key)
     node->count = 1;
     return (node);
 }
- 
+
+// A utility function to print preorder traversal of
+// the tree.
+void preOrder(struct TNode* root, int depth)
+{
+    for(int i=0; i<depth; i++)
+        printf("  ");
+    if (root != NULL) {
+        printf("%f (%d, d%d)\n", root->key, root->count, root->desc);
+        preOrder(root->left, depth+1);
+        preOrder(root->right, depth+1);
+    }else {
+        printf("NULL\n");
+    }
+}
+
 // A utility function to right rotate subtree
 // rooted with y
 struct TNode* rightRotate(struct TNode* y)
@@ -57,14 +72,18 @@ struct TNode* rightRotate(struct TNode* y)
  
     // calculate the number of children of x and y
     // which are changed due to rotation.
-    int val = (T2 != NULL) ? T2->desc : -1;
     if(T2 == NULL){
         y->desc = y->desc - (x->desc + x->count);
         x->desc = x->desc + (y->desc + y->count);
     }else{
-        y->desc = y->desc - (x->desc + x->count) + (val + T2->count);
-        x->desc = x->desc - (val + T2->count) + (y->desc + y->count);
+        y->desc = y->desc - (x->desc + x->count) + (T2->desc + T2->count);
+        x->desc = x->desc - (T2->desc + T2->count) + (y->desc + y->count);
     }
+
+    assert(x->desc >= 0);
+    assert(y->desc >= 0);
+
+    assert(x->desc > y->desc);
     return x;
 }
  
@@ -85,17 +104,18 @@ struct TNode* leftRotate(struct TNode* x)
  
     // calculate the number of children of x and y
     // which are changed due to rotation.
-    int val = (T2 != NULL) ? T2->desc : -1;
     if(T2 == NULL){
         x->desc = x->desc - (y->desc + y->count) ;
         y->desc = y->desc + (x->desc + x->count);
     }else{
-        x->desc = x->desc - (y->desc + y->count) + (val + T2->count);
-        y->desc = y->desc - (val + T2->count) + (x->desc + x->count);
+        x->desc = x->desc - (y->desc + y->count) + (T2->desc + T2->count);
+        y->desc = y->desc - (T2->desc + T2->count) + (x->desc + x->count);
     }
+    assert(x->desc >= 0);
+    assert(y->desc >= 0);
     return y;
 }
- 
+
 // Get Balance factor of node N
 int getBalance(struct TNode* N)
 {
@@ -103,7 +123,7 @@ int getBalance(struct TNode* N)
         return 0;
     return height(N->left) - height(N->right);
 }
- 
+
 struct TNode* insert(struct TNode* node, double key)
 {
     /* 1. Perform the normal BST rotation */
@@ -176,11 +196,11 @@ struct TNode* minValueNode(struct TNode* node)
  
     return current;
 }
- 
+
 // Recursive function to delete a node with given key
 // from subtree with given root. It returns root of
 // the modified subtree.
-struct TNode* deleteNode(struct TNode* root, double key)
+struct TNode* deleteNode(struct TNode* root, double key, bool complete_delete=false, int delete_node_count=1)
 {
     // STEP 1: PERFORM STANDARD BST DELETE
  
@@ -190,25 +210,26 @@ struct TNode* deleteNode(struct TNode* root, double key)
     // If the key to be deleted is smaller than the
     // root's key, then it lies in left subtree
     if (key < root->key) {
-        root->left = deleteNode(root->left, key);
-        root->desc = root->desc - 1;
+        root->left = deleteNode(root->left, key, complete_delete, delete_node_count);
+        root->desc -= delete_node_count;
     }
  
     // If the key to be deleted is greater than the
     // root's key, then it lies in right subtree
     else if (key > root->key) {
-        root->right = deleteNode(root->right, key);
-        root->desc = root->desc - 1;
+        root->right = deleteNode(root->right, key, complete_delete, delete_node_count);
+        root->desc -= delete_node_count;
     }
  
     // if key is same as root's key, then This is
     // the node to be deleted
     else {
+        assert(root->key == key);
         // If key is present more than once, simply decrement
         // count and return
-        if (root->count > 1)
+        if ((!complete_delete) && root->count > 1)
         {
-            (root->count)--;
+            root->count--;
             return root;
         }
         // ElSE, delete the node
@@ -241,8 +262,8 @@ struct TNode* deleteNode(struct TNode* root, double key)
             root->count = temp->count;
  
             // Delete the inorder successor
-            root->right = deleteNode(root->right, temp->key);
-            root->desc = root->desc - 1;
+            root->desc = root->desc - temp->count;
+            root->right = deleteNode(root->right, temp->key, true, temp->count);
         }
     }
  
@@ -283,19 +304,6 @@ struct TNode* deleteNode(struct TNode* root, double key)
     return root;
 }
 
-// A utility function to print preorder traversal of
-// the tree.
-void preOrder(struct TNode* root)
-{
-    if (root != NULL) {
-        printf("%f (%d, d%d), ", root->key, root->count, root->desc);
-        preOrder(root->left);
-        preOrder(root->right);
-    }else{
-        printf(" NULL ");
-    }
-}
- 
 // // Returns count of
 // int CountGreater(struct TNode* root, double x)
 // {
