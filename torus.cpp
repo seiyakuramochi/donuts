@@ -593,7 +593,7 @@ bool Torus::inSpr(Node *neighbor, Node *a, Node *b) {
 }
 
 
-int Torus::route(Node *c, Node *t, std::unordered_map<int, bool> visited, int d) {
+int Torus::route(Node *prev, Node *c, Node *t, std::unordered_map<int, bool> visited, int d) {
     int dist_ct, h;
     double p, p_max;
     Node *neighbor, *max_neighbor;
@@ -615,6 +615,9 @@ int Torus::route(Node *c, Node *t, std::unordered_map<int, bool> visited, int d)
     for(int i=0; i<2*n; i++) {
         neighbor = &(nodes[c->neighbors[i]]);
         assert(hasLink(c, neighbor));
+        if(prev and prev->index == neighbor->index){
+            continue;
+        }
         if (inPre(neighbor, c, t) and not hasFaultyLink(c, neighbor) ) {
             h = hammingDistance(neighbor, t);
             p = getProbability(neighbor, h, dist_ct - 1);
@@ -628,13 +631,16 @@ int Torus::route(Node *c, Node *t, std::unordered_map<int, bool> visited, int d)
     if(p_max > 0) {
         if (visited.count(max_neighbor->index) > 0)
             return DELIVERY_FAIL;
-        return route(max_neighbor, t, visited, d + 1);
+        return route(c, max_neighbor, t, visited, d + 1);
     }
 
     // Try to deliver message to spare node
     for(int i=0; i<2*n; i++) {
         neighbor = &(nodes[c->neighbors[i]]);
         assert(hasLink(c, neighbor));
+        if(prev and prev->index == neighbor->index){
+            continue;
+        }
         if (inSpr(neighbor, c, t) and not hasFaultyLink(c, neighbor)) {
             h = hammingDistance(neighbor, t);
             p = getProbability(neighbor, h, std::min(dist_ct + 1, diameter));
@@ -648,14 +654,14 @@ int Torus::route(Node *c, Node *t, std::unordered_map<int, bool> visited, int d)
     if(p_max > 0) {
         if (visited.count(max_neighbor->index) > 0)
             return DELIVERY_FAIL;
-        return route(max_neighbor, t, visited, d + 1);
+        return route(c, max_neighbor, t, visited, d + 1);
     }
 
     return DELIVERY_FAIL;
 }
 
 
-int Torus::brute(Node *c, Node *t, std::unordered_map<int, bool> visited, int d) {
+int Torus::brute(Node *prev, Node *c, Node *t, std::unordered_map<int, bool> visited, int d) {
     Node *neighbor;
 
     //std::cout << "c:";
@@ -671,21 +677,28 @@ int Torus::brute(Node *c, Node *t, std::unordered_map<int, bool> visited, int d)
     // Try to deliver message to preferred node
     for(int i=0; i<2*n; i++) {
         neighbor = &(nodes[c->neighbors[i]]);
+        if(prev and prev->index == neighbor->index){
+            continue;
+        }
+
         if(inPre(neighbor, c, t) and not hasFaultyLink(c, neighbor)) {
             if(visited.count(neighbor->index) > 0)
                 return DELIVERY_FAIL;
-            return brute(neighbor, t, visited, d + 1);
+            return brute(c, neighbor, t, visited, d + 1);
         }
     }
 
     // Try to deliver message to spare node
     for(int i=0; i<2*n; i++) {
         neighbor = &(nodes[c->neighbors[i]]);
+        if(prev and prev->index == neighbor->index){
+            continue;
+        }
         if (not hasFaultyLink(c, neighbor)){
             assert(inSpr(neighbor, c, t));
             if (visited.count(neighbor->index) > 0)
                 return DELIVERY_FAIL;
-            return brute(neighbor, t, visited, d + 1);
+            return brute(c, neighbor, t, visited, d + 1);
         }
     }
 
@@ -697,6 +710,9 @@ int Torus::bfs(Node *c, Node *t, std::unordered_map<int, bool> visited) {
     std::queue<int> q_i, q_d;
     int a_d;
     Node *a, *neighbor;
+
+    if(c->index == t->index)
+        return 0;
 
     visited[c->index] = true;
     q_i.push(c->index);

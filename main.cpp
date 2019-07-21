@@ -41,7 +41,8 @@ int main(int argc, char* argv[]){
     // パラレルに実行される 同じデータにアクセスしないように注意
 #pragma omp parallel for
     for (int i = 0; i < n_loop; i++) {
-        cout << i << endl;
+        //cout << i << endl;
+
         bool has_non_faulty_route = false;
         while(true){
             // step 1
@@ -59,11 +60,11 @@ int main(int argc, char* argv[]){
             }
             
             // step 3
-            d_brutes[i] = t->brute(&(t->nodes[from]), &(t->nodes[to]), *(new std::unordered_map<int, bool>), 0);
+            d_brutes[i] = t->brute(0, &(t->nodes[from]), &(t->nodes[to]), *(new std::unordered_map<int, bool>), 0);
             brute_success[i] = (d_brutes[i] != DELIVERY_FAIL);
 
             t->calcRoutingProbabilities();
-            d_routes[i] = t->route(&(t->nodes[from]), &(t->nodes[to]), *(new std::unordered_map<int, bool>), 0);
+            d_routes[i] = t->route(0, &(t->nodes[from]), &(t->nodes[to]), *(new std::unordered_map<int, bool>), 0);
             route_success[i] = (d_routes[i] != DELIVERY_FAIL);
 
             delete t;

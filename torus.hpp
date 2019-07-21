@@ -103,8 +103,8 @@ public:
          double out_p[], int out_xp[], int out_yp[]);
 
     // routing algorithms
-    int route(Node* c, Node* t, std::unordered_map<int, bool> visited, int d);
-    int brute(Node* c, Node* t, std::unordered_map<int, bool> visited, int d);
+    int route(Node *prev, Node* c, Node* t, std::unordered_map<int, bool> visited, int d);
+    int brute(Node *prev, Node *c, Node *t, std::unordered_map<int, bool> visited, int d);
 
     // breath-first search for optimal routing
     int bfs(Node *c, Node *t, std::unordered_map<int, bool> visited);
