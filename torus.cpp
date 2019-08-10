@@ -51,11 +51,8 @@ void Torus::allocate() {
         nodes[i].index = i;
         nodes[i].value = new int[n];
 
-        nodes[i].P = (double**)malloc(n*sizeof(double*));
-        for(int j=0; j<n; j++) {
-            nodes[i].P[j] = new double[diameter];
-            std::fill_n(nodes[i].P[j], diameter, -1);
-        }
+        nodes[i].P = new double[diameter];
+        std::fill_n(nodes[i].P, diameter, -1);
 
         nodes[i].neighbors = new int[2*n];
     }
@@ -177,6 +174,41 @@ void Torus::printFaultyLinks() {
 }
 
 
+void Torus::setRandomFaultyNodes(double p_faulty) {
+    // O(k^n)
+
+    int n_faulty = static_cast<int>(p_faulty * V);
+    int count_faulty=0;
+
+    std::random_device rd;
+    std::mt19937 mt(rd());
+    std::uniform_int_distribution<int> dice_V(0, V-1);
+
+    bool* is_faulty_node = new bool[V];
+    for(int i=0; i<V; i++)
+        is_faulty_node[i] = false;
+
+    assert(0.0 <= p_faulty and p_faulty <= 1.0);
+    assert(0 <= n_faulty and n_faulty <= V);
+
+    while(count_faulty < n_faulty) {
+        Node *a = &(nodes[dice_V(mt)]);
+        if(is_faulty_node[a->index])
+            continue;
+
+        for (int j=0; j<2*n; j++) {
+            Node* neighbor = &nodes[a->neighbors[j]];
+            if (hasFaultyLink(a, neighbor))
+                continue;
+            setFaultyLink(a, neighbor);
+            assert(hasFaultyLink(a, neighbor));
+        }
+        is_faulty_node[a->index] = true;
+        count_faulty++;
+    }
+}
+
+
 void Torus::setRandomFaultyLinks(double p_faulty) {
     // O(k^n)
 
@@ -205,275 +237,44 @@ void Torus::setRandomFaultyLinks(double p_faulty) {
 }
 
 
-double Torus::calc_p_i(Node *a, Node *a_plus_e, int h, int d) {
-    if (hasFaultyLink(a, a_plus_e))
-        return 0.0;
-
-    double p = 0.0;
-    if (h == 1){
-        p += getProbability(a_plus_e, h, d - 1);
-    }else if (h == d){
-        p += getProbability(a_plus_e, h - 1, d - 1);
-    }else{
-        p += (h - 1) * getProbability(a_plus_e, h - 1, d - 1) +
-             (d - h) * getProbability(a_plus_e, h, d - 1);
-        p /= (d - 1);
-    }
-    assert(0.0 <= p);// and p <= 1.0);
-    return p;
-}
-
-
-void sortCouple(double *a, double *b, int len){
-    // aの基準で、aとbをソートする
-    using namespace std;
-
-    double *tmp_a = new double[len];
-    double *tmp_b = new double[len];
-
-    // まずインデックスの列をソートする
-    std::vector<int> argsort;
-    argsort.resize(len);
-    iota(argsort.begin(), argsort.end(), 0);
-    std::sort(
-        std::begin(argsort), 
-        std::end(argsort),
-        [a](int i, int j) { return a[i] < a[j]; }
-    );
-
-    // インデックスのソートに基づいてtmpの値をソートする
-    for(int i=0; i<len; i++){
-        tmp_a[i] = a[argsort[i]];
-        tmp_b[i] = b[argsort[i]];
-    }
-
-    // コピーして終わり
-    memcpy(a, tmp_a, sizeof(double)*len);
-    memcpy(b, tmp_b, sizeof(double)*len);
-
-    delete[] tmp_a;
-    delete[] tmp_b;
-}
-
-
-std::string Torus::get_e_plus(Node *a, int i){
-    using namespace std;
-    string e_plus = "";
-    for (int l = 0; l < n; l++)
-        if (l == i)
-            e_plus += to_string((a->value[l] + 1) % k) + ",";
-        else
-            e_plus += to_string(a->value[l]) + ",";
-    return e_plus;
-}
-
-
-std::string Torus::get_e_minus(Node *a, int i){
-    using namespace std;
-    string e_minus = "";
-    for (int l = 0; l < n; l++)
-        if (l == i) {
-            if (a->value[l] == 0)
-                e_minus += to_string(k-1) + ",";
-            else
-                e_minus += to_string(a->value[l] - 1) + ",";
-        } else {
-            e_minus += to_string(a->value[l]) + ",";
-        }
-    return e_minus;
-}
-
-
-void Torus::calcPQ(Node *a, int h, int d, double *p, double *q){
-    std::string e_plus, e_minus;
-
-    // pとqを計算する
-    for (int i=0; i<n; i++) {
-        e_plus = get_e_plus(a, i);
-        e_minus = get_e_minus(a, i);
-
-        assert(hasLink(a, &nodes[node_value_index[e_plus]]));
-        assert(hasLink(a, &nodes[node_value_index[e_minus]]));
-
-        p[i] = calc_p_i(a, &nodes[node_value_index[e_plus]], h, d);
-        q[i] = calc_p_i(a, &nodes[node_value_index[e_minus]], h, d);
-    }
-}
-
-
-void Torus::XxYxMainProcess(int h, int d, double* p, double* q,
-        int out_xp[], int out_yp[]){
-
-    // O(nlogn)
-
-    using namespace std;
-
-    struct TNode* t_l = NULL;
-    struct TNode* t_r = NULL;
- 
-    for(int i=0; i<n; i++)
-        t_r = insert(t_r, q[i]);
-
-    assert(CountLesser(t_r, 1000.0) == n);
-    assert(CountLesser(t_r, -1.0) == 0);
-   
-    for(int i=1; i<=n; i++){
-        // preOrder(t_l);
-        out_xp[i-1] = CountLesser(t_l, p[i-1]);
-        // cout << "threshold:" << p[i-1] << endl;
-        // cout << "out:" << out_xp[i-1] << endl << endl;
-        t_r = deleteNode(t_r, q[i-1]);
-
-        // preOrder(t_r);
-        out_yp[i-1] = (i-1-out_xp[i-1]) + CountLesser(t_r, p[i-1]);
-        // cout << "threshold:" << p[i-1] << endl;
-        // cout << "out:" << (i-1-out_xp[i-1]) << "+ " << CountLesser(t_r, p[i-1]) << "=" << out_yp[i-1] << endl << endl;
-        t_l = insert(t_l, q[i-1]);
-    }
-
-    assert(CountLesser(t_l, 1000.0) == n);
-
-    delete[] p;
-    delete[] q;
-    delete_tree(t_r);
-    delete_tree(t_l);
-}
-
-
-void Torus::XpYp(Node *a, int h, int d, double in_p[], double in_q[],
-     double out_p[], int out_xp[], int out_yp[]) {
-
-    // ソートするので、pとqの領域を確保する
-    double *p = new double[n];
-    double *q = new double[n];
-
-    // pとqの値をコピーする
-    memcpy(p, in_p, n * sizeof(double));
-    memcpy(q, in_q, n * sizeof(double));
-
-    // ここでp[i]とq[i]は次元順序になっている
-    // ので、pの大きさベースで確率の順序に並び替える(破壊的変更)
-    sortCouple(p, q, n);
-
-    memcpy(out_p, p, n * sizeof(double));
-
-    assert(p[0] <= p[1]);
-
-    // xpとypを計算する
-    XxYxMainProcess(h, d, p, q, out_xp, out_yp);
-}
-
-
-void Torus::XqYq(Node *a, int h, int d, double in_p[], double in_q[],
-      double out_q[], int out_xq[], int out_yq[]) {
-
-    // ソートするので、pとqの領域を確保する
-    double *p = new double[n];
-    double *q = new double[n];
-    
-    // pとqの値をコピーする
-    memcpy(p, in_p, n * sizeof(double));
-    memcpy(q, in_q, n * sizeof(double));
-
-    // ここでp[i]とq[i]は次元順序になっている
-    // ので、qの大きさベースで確率の順序に並び替える(破壊的変更)
-    sortCouple(q, p, n);
-
-    memcpy(out_q, q, n * sizeof(double));
-
-    assert(q[0] <= q[1]);
-
-    // xqとyqを計算する
-    XxYxMainProcess(h, d, q, p, out_xq, out_yq);
-}
-
-
-int combination(int n, int r){
-    //using namespace std;
-    //cout << "n,r,ncr="<< n << ","<<r<<","<<tgamma(n+1)/(tgamma(n-r+1)*tgamma(r+1))<<endl;
-    if(r > n)
-        return 0;
-    return tgamma(n+1)/(tgamma(n-r+1)*tgamma(r+1));
-}
-
-
 // procedure P(a)
 void Torus::calcRoutingProbabilities() {
-    double *ps, *qs, *out_p, *out_q;
-    int *xp, *yp, *xq, *yq;
     Node *a;
-    double p, p11;
+    double p, p1;
     Node *neighbor;
-    
-    out_p = new double[n];
-    out_q = new double[n];
-    ps = new double[n];
-    qs = new double[n];
-    xp = new int[n];
-    yp = new int[n];
-    xq = new int[n];
-    yq = new int[n];
 
-    /*
-     * まず全てのノードについてP(a)_{1,1}を計算
-     * First, calculate P(a)_{1,1} for all nodes
-     */
     for(int i=0; i<V; i++) {
         a = &nodes[i];
 
-        p11 = 0.0;
+        p1 = 0;
         for (int j=0; j<2*n; j++) {
             neighbor = &nodes[nodes[i].neighbors[j]];
-            if(not hasFaultyLink(a, neighbor))
-                p11 += 1.0;
+            if(hasFaultyLink(a, neighbor))
+                p1 += 1.0;
         }
-        p11 /= 2*n;
-        setProbability(a, 1, 1, p11);
+        p1 /= 2*n;
+        setProbability(a, 1, p1);
     }
 
-    /*
-     * P(a)_{h,d}を計算していく
-     * P(a)_{h,d}の計算には, P(a)_{h,d-1}やP(a)_{h-1,d-1}が必要になる.
-     * P(a)_{1,1}だけで計算できるP(a)_{1,2}から順番に計算していく(動的計画法)
-     *
-     * Calculation of P(a)_{h,d}
-     * P(a)_{h,d} needs P(a)_{h,d-1} and P(a)_{h-1,d-1}.
-     * Calculation starts with P(a)_{1,2}.
-     */
+    assert(n == 3);
+
     for (int d = 2; d <= diameter; d++)
-        for (int h = 1; h <= std::min(n, d); h++)
-            for (int i = 0; i < V; i++) {
-                a = &(nodes[i]);
+        // for each nodes in Torus
+        for (int i = 0; i < V; i++) {
+            a = &(nodes[i]);
 
-                calcPQ(a, h, d, ps, qs);
-                XpYp(a, h, d, ps, qs, out_p, xp, yp);
-                XqYq(a, h, d, ps, qs, out_q, xq, yq);
-
-                p = 0.0;
-                for(int ii=1; ii<=n; ii++)
-                    for(int kk=0; kk<=h-1; kk++) {
-                        // xp yp xq yq は 0-origin なので ii から 1 引く
-                        p += pow(2, kk) * ( 
-                             combination(xp[ii-1], kk) * 
-                             combination(yp[ii-1], h-kk-1) *
-                             out_p[ii-1] +
-                             combination(xq[ii-1], kk) *
-                             combination(yq[ii-1], h-kk-1) *
-                             out_q[ii-1]);
-                    }
-
-                p /= pow(2, h) * combination(n, h);
-                setProbability(a, h, d, p);   
+            p = 1.0;
+            // for each neighbors of node a
+            for (int j=0; j<2*n; j++) {
+                double r = 1.0;
+                neighbor = &nodes[nodes[i].neighbors[j]];
+                if(not hasFaultyLink(a, neighbor))
+                    for(int h=1; h<=std::min(d, n); h++)
+                        r -= h/6 * (1-getProbability(a, d-1));
+                p *= r;
             }
-
-    delete[] out_p;
-    delete[] out_q;
-    delete[] ps;
-    delete[] qs ;
-    delete[] xp ;
-    delete[] yp ;
-    delete[] xq ;
-    delete[] yq ;
+            setProbability(a, d, p);
+        }
 }   
 
  
@@ -504,31 +305,28 @@ bool Torus::hasLink(Node *a, Node *b) {
 }
 
 
-void Torus::setProbability(Node *a, int h, int d, double p) {
-    assert(0 < h and h <= n);
+void Torus::setProbability(Node *a, int d, double p) {
     assert(0 < d and d <= diameter);
     assert(0.0 <= p); //and p <= 1.0);
 
     // setProbability()によってセットされるのが1回目であることをチェック
-    assert(nodes[a->index].P[h-1][d-1] == -1);
+    assert(nodes[a->index].P[d-1] == -1);
 
-    nodes[a->index].P[h-1][d-1] = p;
+    nodes[a->index].P[d-1] = p;
 }
 
 
-double Torus::getProbability(Node *a, int h, int d) {
-    assert(0 <= h and h <= n);
+double Torus::getProbability(Node *a, int d) {
     assert(0 <= d and d <= floor(k/2)*n);
 
-    if(h == 0) {
-        assert(d == 0);
+    if(d == 0){
         return 1.0;
     }
 
     // setProbability()によってセットされた値であることをチェック
-    assert(nodes[a->index].P[h-1][d-1] != -1);
+    assert(nodes[a->index].P[d-1] != -1);
 
-    return nodes[a->index].P[h-1][d-1];
+    return nodes[a->index].P[d-1];
 }
 
 
@@ -552,10 +350,7 @@ void Torus::printProbabilities() {
         std::cout << ") ";
 
         for (int d = 1; d <= floor(k / 2) * n; d++)
-            for (int h = 1; h <= std::min(n, d); h++) {
-                std::cout << int(getProbability(a, h, d)*100)/100.0
-                          << " ";
-            }
+            std::cout << int(getProbability(a, d)*100)/100.0 << " ";
         std::cout <<  std::endl;
     }
 }
@@ -595,7 +390,7 @@ bool Torus::inSpr(Node *neighbor, Node *a, Node *b) {
 
 int Torus::route(Node *prev, Node *c, Node *t, std::unordered_map<int, bool> visited, int d) {
     int dist_ct, h;
-    double p, p_max;
+    double p, p_min;
     Node *neighbor, *max_neighbor;
 
     //std::cout << "c:";
@@ -608,7 +403,7 @@ int Torus::route(Node *prev, Node *c, Node *t, std::unordered_map<int, bool> vis
         return d;
 
     dist_ct = distance(c, t);
-    p_max = -1;
+    p_min = 10000;
     visited[c->index] = true;
 
     // Try to deliver message to preferred node
@@ -619,16 +414,15 @@ int Torus::route(Node *prev, Node *c, Node *t, std::unordered_map<int, bool> vis
             continue;
         }
         if (inPre(neighbor, c, t) and not hasFaultyLink(c, neighbor) ) {
-            h = hammingDistance(neighbor, t);
-            p = getProbability(neighbor, h, dist_ct - 1);
+            p = getProbability(neighbor, dist_ct - 1);
 
-            if (p > p_max) {
-                p_max = p;
+            if (p < p_min) {
+                p_min = p;
                 max_neighbor = neighbor;
             }
         }
     }
-    if(p_max > 0) {
+    if(p_min < 10000) {
         if (visited.count(max_neighbor->index) > 0)
             return DELIVERY_FAIL;
         return route(c, max_neighbor, t, visited, d + 1);
@@ -642,16 +436,15 @@ int Torus::route(Node *prev, Node *c, Node *t, std::unordered_map<int, bool> vis
             continue;
         }
         if (inSpr(neighbor, c, t) and not hasFaultyLink(c, neighbor)) {
-            h = hammingDistance(neighbor, t);
-            p = getProbability(neighbor, h, std::min(dist_ct + 1, diameter));
+            p = getProbability(neighbor, std::min(dist_ct + 1, diameter));
 
-            if (p > p_max) {
-                p_max = p;
+            if (p < p_min) {
+                p_min = p;
                 max_neighbor = neighbor;
             }
         }
     }
-    if(p_max > 0) {
+    if(p_min < 10000) {
         if (visited.count(max_neighbor->index) > 0)
             return DELIVERY_FAIL;
         return route(c, max_neighbor, t, visited, d + 1);
@@ -749,10 +542,8 @@ Torus::~Torus() {
     F.clear();
 
     for(int i=0; i<V; i++){
-        delete[] nodes[i].value;
-        for(int j=0; j<n; j++)
-            delete[] nodes[i].P[j];
-        free(nodes[i].P);
+        delete[] nodes[i].value;\
+        delete[] nodes[i].P;
         delete[] nodes[i].neighbors;
     }
     free(nodes);

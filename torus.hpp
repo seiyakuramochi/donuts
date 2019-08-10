@@ -10,11 +10,11 @@ typedef struct NODE
     int index;
     int *value; // n-dimension vector
 
-    double **P;
+    double *P;
     /*
-     * P: matrix of probabilities
-     * P contain probability of node depends on h and d
-     * where 1 <= h <= n, 1 <= d <= diameter
+     * P: vector of probabilities
+     * P contain probability of node depends on d
+     * where 1 <= d <= diameter
     */
 
     int *neighbors;  // indices
@@ -46,8 +46,8 @@ public:
     bool hasLink(Node *a, Node *b);
     void setFaultyLink(Node *a, Node *b);
     bool hasFaultyLink(Node *a, Node *b);
-    void setProbability(Node *a, int h, int d, double p);
-    double getProbability(Node *a, int h, int d);
+    void setProbability(Node *a, int d, double p);
+    double getProbability(Node *a, int d);
     // ↑ ====== just to read/write data
 
     // 各種距離の計算
@@ -86,6 +86,7 @@ public:
 
     // ↓割りと重要な関数たち Very important algorithms
     void setRandomFaultyLinks(double p_faulty);
+    void setRandomFaultyNodes(double p_faulty);
 
     std::string get_e_plus(Node *a, int i);
     std::string get_e_minus(Node *a, int i);

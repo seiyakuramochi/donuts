@@ -33,6 +33,7 @@ int main(int argc, char* argv[]){
     double* d_routes = new double[n_loop];
     double* d_brutes = new double[n_loop];
     double* d_bfss = new double[n_loop];
+    double* d_lee =  new double[n_loop];
 
     uniform_int_distribution<int> dice(0, static_cast<int>(pow(k, n) - 1));
 
@@ -47,7 +48,8 @@ int main(int argc, char* argv[]){
         while(true){
             // step 1
             Torus *t = new Torus(n, k);
-            t->setRandomFaultyLinks((double)p_faulty);
+            //t->setRandomFaultyLinks((double)p_faulty);
+            t->setRandomFaultyNodes((double)p_faulty);
 
             // step 2
             int from = dice(mt);
@@ -67,16 +69,21 @@ int main(int argc, char* argv[]){
             d_routes[i] = t->route(0, &(t->nodes[from]), &(t->nodes[to]), *(new std::unordered_map<int, bool>), 0);
             route_success[i] = (d_routes[i] != DELIVERY_FAIL);
 
+            d_lee[i] = t->distance(&(t->nodes[from]), &(t->nodes[to]));
             delete t;
             break;
         }
     }
 
+    float sum_deviation = 0;
     // データを集計する
     for(int i=0; i<n_loop; i++){
         if(route_success[i]){
             n_route_success++;
             mean_d_route += d_routes[i];
+            if(d_lee[i] > 0){
+                sum_deviation += (d_routes[i] - d_lee[i]) / d_lee[i];
+            }
         }
 
         if(brute_success[i]){
@@ -94,10 +101,11 @@ int main(int argc, char* argv[]){
     cout << p_faulty << ", "
          << n << ", "
          << k << ", "
-         << p_route_success << ", "
-         << p_brute_success << ", "
-         << mean_d_route / n_route_success << ", "
-         << mean_d_brute / n_brute_success << ", "
-         << mean_d_bfs / n_loop
+         //<< sum_deviation / n_route_success << ","
+         << 1-p_route_success << ", "
+        // << p_brute_success << ", "
+       //  << mean_d_route / n_route_success << ", "
+       //  << mean_d_brute / n_brute_success << ", "
+       //  << mean_d_bfs / n_loop
          << endl;
 }
