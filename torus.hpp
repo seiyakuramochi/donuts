@@ -87,6 +87,7 @@ public:
     // ↓割りと重要な関数たち Very important algorithms
     void setRandomFaultyLinks(double p_faulty);
     void setRandomFaultyNodes(double p_faulty);
+    void setFixedFaultyNodes();
 
     std::string get_e_plus(Node *a, int i);
     std::string get_e_minus(Node *a, int i);

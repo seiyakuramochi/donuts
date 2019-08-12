@@ -6,7 +6,7 @@
 #include <random>
 #include <string.h>
 #include <stdlib.h>
- 
+
 #include "bbst.hpp"
 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
@@ -14,7 +14,8 @@
 
 #include "torus.hpp"
 
-#define DELIVERY_FAIL -1;
+#define UNREACHABLE -1;
+#define DETECT_LOOP -2;
 
 using namespace boost::numeric::ublas;
 
@@ -174,6 +175,43 @@ void Torus::printFaultyLinks() {
 }
 
 
+void Torus::setFixedFaultyNodes() {
+    assert(n == 3);
+    assert(k == 3);
+
+    for(int i=0; i<V; i++){
+        Node *a = &(nodes[i]);
+        bool is_faulty_node = false;
+        if(a->value[0] == 0 and a->value[1] == 1 and a->value[2] == 1){
+            is_faulty_node = true;
+        }
+        if(a->value[0] == 1 and a->value[1] == 0 and a->value[2] == 0){
+            is_faulty_node = true;
+        }
+        if(a->value[0] == 1 and a->value[1] == 1 and a->value[2] == 0){
+            is_faulty_node = true;
+        }
+        if(a->value[0] == 1 and a->value[1] == 2 and a->value[2] == 0){
+            is_faulty_node = true;
+        }
+        if(a->value[0] == 2 and a->value[1] == 2 and a->value[2] == 0){
+            is_faulty_node = true;
+        }
+        if(is_faulty_node){
+            for (int j=0; j<2*n; j++) {
+                Node* neighbor = &nodes[a->neighbors[j]];
+                if (hasFaultyLink(a, neighbor))
+                    continue;
+                setFaultyLink(a, neighbor);
+                assert(hasFaultyLink(a, neighbor));
+            }
+        }
+
+    }
+}
+
+
+
 void Torus::setRandomFaultyNodes(double p_faulty) {
     // O(k^n)
 
@@ -248,7 +286,7 @@ void Torus::calcRoutingProbabilities() {
 
         p1 = 0;
         for (int j=0; j<2*n; j++) {
-            neighbor = &nodes[nodes[i].neighbors[j]];
+            neighbor = &nodes[a->neighbors[j]];
             if(hasFaultyLink(a, neighbor))
                 p1 += 1.0;
         }
@@ -266,18 +304,18 @@ void Torus::calcRoutingProbabilities() {
             p = 1.0;
             // for each neighbors of node a
             for (int j=0; j<2*n; j++) {
-                double r = 1.0;
-                neighbor = &nodes[nodes[i].neighbors[j]];
+                double r = 0.0;
+                neighbor = &nodes[a->neighbors[j]];
                 if(not hasFaultyLink(a, neighbor))
                     for(int h=1; h<=std::min(d, n); h++)
-                        r -= h/6 * (1-getProbability(a, d-1));
-                p *= r;
+                        r += h/6.0 * (1.0-getProbability(neighbor, d-1));
+                p *= (1.0-r);
             }
             setProbability(a, d, p);
         }
-}   
+}
 
- 
+
 // 1-α(a, b)
 bool Torus::hasFaultyLink(Node *a, Node *b) {
     // 対称行列で上三角しか使ってないので入れ替えて補う
@@ -331,27 +369,33 @@ double Torus::getProbability(Node *a, int d) {
 
 
 void Torus::printProbabilities() {
+    using namespace std;
+
     Node* a;
-    std::cout << "Node ";
-    for (int d = 1; d <= floor(k / 2) * n; d++)
-        for (int h = 1; h <= std::min(n, d); h++){
-            std::cout << "P_{" << h << "," << d << "} ";
-        }
-    std::cout << std::endl;
+    cout << "Node ";
+    //for (int d = 1; d <= floor(k / 2) * n; d++)
+    //        cout << "P_{"<< d << "} ";
+    //cout << endl;
 
     for(int i=0; i<V; i++) {
         a = &nodes[i];
-        std::cout << "(";
-        for(int j=0; j<n; j++) {
-            std::cout << a->value[j];
-            if(j < n-1)
-                std::cout << ",";
+        cout << "(";
+        for (int j = 0; j < n; j++) {
+            cout << a->value[j];
+            if (j < n - 1)
+                cout << ",";
         }
-        std::cout << ") ";
+        cout << ") ";
+    }
+    cout << endl;
+    for (int d = 1; d <= floor(k / 2) * n; d++) {
+        cout << "P_{"<< d << "} ";
+        for(int i=0; i<V; i++) {
+            a = &nodes[i];
+            cout << int(getProbability(a, d)*1000)/1000.0 << " ";
+        }
 
-        for (int d = 1; d <= floor(k / 2) * n; d++)
-            std::cout << int(getProbability(a, d)*100)/100.0 << " ";
-        std::cout <<  std::endl;
+        cout << endl;
     }
 }
 
@@ -406,11 +450,14 @@ int Torus::route(Node *prev, Node *c, Node *t, std::unordered_map<int, bool> vis
     p_min = 10000;
     visited[c->index] = true;
 
+    bool prev_in_pre = false;
+
     // Try to deliver message to preferred node
     for(int i=0; i<2*n; i++) {
         neighbor = &(nodes[c->neighbors[i]]);
         assert(hasLink(c, neighbor));
         if(prev and prev->index == neighbor->index){
+            prev_in_pre = true;
             continue;
         }
         if (inPre(neighbor, c, t) and not hasFaultyLink(c, neighbor) ) {
@@ -424,7 +471,7 @@ int Torus::route(Node *prev, Node *c, Node *t, std::unordered_map<int, bool> vis
     }
     if(p_min < 10000) {
         if (visited.count(max_neighbor->index) > 0)
-            return DELIVERY_FAIL;
+            return DETECT_LOOP;
         return route(c, max_neighbor, t, visited, d + 1);
     }
 
@@ -446,11 +493,11 @@ int Torus::route(Node *prev, Node *c, Node *t, std::unordered_map<int, bool> vis
     }
     if(p_min < 10000) {
         if (visited.count(max_neighbor->index) > 0)
-            return DELIVERY_FAIL;
+            return DETECT_LOOP;
         return route(c, max_neighbor, t, visited, d + 1);
     }
 
-    return DELIVERY_FAIL;
+    return UNREACHABLE;
 }
 
 
@@ -476,7 +523,7 @@ int Torus::brute(Node *prev, Node *c, Node *t, std::unordered_map<int, bool> vis
 
         if(inPre(neighbor, c, t) and not hasFaultyLink(c, neighbor)) {
             if(visited.count(neighbor->index) > 0)
-                return DELIVERY_FAIL;
+                return UNREACHABLE;
             return brute(c, neighbor, t, visited, d + 1);
         }
     }
@@ -490,12 +537,12 @@ int Torus::brute(Node *prev, Node *c, Node *t, std::unordered_map<int, bool> vis
         if (not hasFaultyLink(c, neighbor)){
             assert(inSpr(neighbor, c, t));
             if (visited.count(neighbor->index) > 0)
-                return DELIVERY_FAIL;
+                return UNREACHABLE;
             return brute(c, neighbor, t, visited, d + 1);
         }
     }
 
-    return DELIVERY_FAIL;
+    return UNREACHABLE;
 }
 
 
@@ -534,7 +581,7 @@ int Torus::bfs(Node *c, Node *t, std::unordered_map<int, bool> visited) {
     }
 
     assert(q_d.empty());
-    return DELIVERY_FAIL;
+    return UNREACHABLE;
 }
 
 Torus::~Torus() {
