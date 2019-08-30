@@ -24,14 +24,16 @@ int main(int argc, char* argv[]){
     random_device rd;
     mt19937 mt(rd());
 
-    double mean_d_route=0, mean_d_bfs=0;
+    double mean_d_route=0, mean_d_brute=0, mean_d_bfs=0;
     int n_route_success=0;
     int n_loop = N;
 
     bool* route_unreachable = new bool[n_loop];
     bool* route_looping = new bool[n_loop];
+    bool* brute_success = new bool[n_loop];
 
     double* d_routes = new double[n_loop];
+    double* d_brutes = new double[n_loop];
     double* d_bfss = new double[n_loop];
     double* d_lee =  new double[n_loop];
 
@@ -40,12 +42,12 @@ int main(int argc, char* argv[]){
     assert(0.0 <= p_faulty and p_faulty < 1.0);
 
     // test
-    Torus *t = new Torus(n, k);
+    /*Torus *t = new Torus(n, k);
     t->setFixedFaultyNodes();
     t->calcRoutingProbabilities();
     t->printFaultyLinks();
     t->printProbabilities();
-    return 0;
+    return 0;*/
     // ここまでtest
 
     // パラレルに実行される 同じデータにアクセスしないように注意
@@ -57,18 +59,22 @@ int main(int argc, char* argv[]){
         while(true){
             // step 1
             Torus *t = new Torus(n, k);
-            //t->setRandomFaultyLinks((double)p_faulty);
-            t->setRandomFaultyNodes((double)p_faulty);
+            t->setRandomFaultyLinks((double)p_faulty);
+            //t->setRandomFaultyNodes((double)p_faulty);
 
             // step 2
             int from = dice(mt);
             int to = dice(mt);
-            //d_bfss[i] = t->bfs(&(t->nodes[from]), &(t->nodes[to]), *(new std::unordered_map<int, bool>));
-            //has_non_faulty_route = (d_bfss[i] != UNREACHABLE);
-            //if (not has_non_faulty_route){
-            //    delete t;
-            //    continue;
-           // }
+            d_bfss[i] = t->bfs(&(t->nodes[from]), &(t->nodes[to]), *(new std::unordered_map<int, bool>));
+            has_non_faulty_route = (d_bfss[i] != UNREACHABLE);
+            if (not has_non_faulty_route){
+                delete t;
+                continue;
+            }
+
+            // step 3
+            d_brutes[i] = t->brute(0, &(t->nodes[from]), &(t->nodes[to]), *(new std::unordered_map<int, bool>), 0);
+            brute_success[i] = (d_brutes[i] != UNREACHABLE);
 
             t->calcRoutingProbabilities();
             d_routes[i] = t->route(0, &(t->nodes[from]), &(t->nodes[to]), *(new std::unordered_map<int, bool>), 0);
@@ -84,37 +90,43 @@ int main(int argc, char* argv[]){
     float sum_deviation = 0;
     int n_route_unreachable = 0;
     int n_route_looping = 0;
+    int n_brute_success = 0;
     // データを集計する
     for(int i=0; i<n_loop; i++){
         if((not route_unreachable[i]) and (not route_looping[i])){
             n_route_success++;
             mean_d_route += d_routes[i];
-            if(d_lee[i] > 0){
+            if(d_lee[i] > 0)
                 sum_deviation += (d_routes[i] - d_lee[i]) / d_lee[i];
-            }
         }
+
         if(route_unreachable[i])
             n_route_unreachable++;
+
         if(route_looping[i])
             n_route_looping++;
 
-        //assert(d_bfss[i] != UNREACHABLE);
-        //mean_d_bfs += d_bfss[i];
+        if(brute_success[i]){
+            n_brute_success++;
+            mean_d_brute += d_brutes[i];
+        }
+
+        assert(d_bfss[i] != UNREACHABLE);
+        mean_d_bfs += d_bfss[i];
     }
 
     assert(n_route_success == n_loop - n_route_looping - n_route_unreachable);
 
-    //double p_route_success = n_route_success / (double)n_loop;
+    double p_route_success = n_route_success/(double)n_loop;
+    double p_brute_success = n_brute_success / (double)n_loop;
 
     cout << p_faulty << ", "
          << n << ", "
          << k << ", "
-         << sum_deviation / n_route_success << ","
-         //<< (n_route_unreachable)/(double)n_loop << ", "
-         //<< n_route_looping/(double)n_loop << ", "
-        // << p_brute_success << ", "
-       //  << mean_d_route / n_route_success << ", "
-       //  << mean_d_brute / n_brute_success << ", "
-       //  << mean_d_bfs / n_loop
+         << p_route_success << ", "
+         << p_brute_success << ", "
+         << mean_d_route / n_route_success << ", "
+         << mean_d_brute / n_brute_success << ", "
+         << mean_d_bfs / n_loop
          << endl;
 }

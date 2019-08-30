@@ -8,9 +8,11 @@ params = [(n, k, round(0.01 * p, 2)) for n, k, p
           in itertools.product([3], range(3, 10), range(10, 55, 10))]
 
 
-params = [(3,3,n/float(3**3)) for n in range(0,27)]
+#params = [(3,3,n/float(3**3)) for n in range(0,27)]
 #params = [(2, 64, 0.2), (3, 16, 0.2), (4, 8, 0.2)]
 
+params = [(n, k, round(0.01 * p, 2)) for n, k, p
+          in itertools.product([3], [9], range(0, 55, 5))]
 
 for param in params:
     command = "./main " + " ".join(str(i) for i in param)# + " >> compare.csv"
