@@ -1,7 +1,7 @@
 CXX := g++
-CXXFLAGS := -Wall -c -std=c++11 -O
+CXXFLAGS := -Wall -c -std=c++11 -Ofast -flto -c
 main: main.o torus.o
-	$(CXX) -o main main.o torus.o -fopenmp
+	$(CXX) -Ofast -o main main.o torus.o -fopenmp
 main.o: main.cpp
 	$(CXX) $(CXXFLAGS) main.cpp -fopenmp
 torus.o: torus.cpp

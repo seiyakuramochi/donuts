@@ -11,7 +11,7 @@
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/io.hpp>
 
-#define N 1000
+#define N 10000
 #define DELIVERY_FAIL (-1)
 
 int main(int argc, char* argv[]){
